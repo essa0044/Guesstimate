@@ -40,7 +40,7 @@ python3 -m http.server 8000
 
 1. In this repository, go to **Settings → Pages**.
 2. Under **Build and deployment**, set **Source** to *Deploy from a branch*, pick `main` and `/ (root)`, and save.
-3. After a minute the game is live at `https://essa0044.github.io/guesstimate/`.
+3. After a minute the game is live at `https://essa0044.github.io/Guesstimate/`.
 
 ## Project layout
 
