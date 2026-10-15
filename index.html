@@ -1,0 +1,1320 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Guesstimate</title>
+<meta name="description" content="A daily estimation game. Judge how full a glass is, count flashed dots, read angles, find centers, feel time and match shades.">
+<meta name="theme-color" content="#ECF0F4" media="(prefers-color-scheme: light)">
+<meta name="theme-color" content="#0D1524" media="(prefers-color-scheme: dark)">
+<meta property="og:title" content="Guesstimate">
+<meta property="og:description" content="How good is your eye? Five quick estimation games, new every day.">
+<meta property="og:type" content="website">
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="manifest" href="manifest.webmanifest">
+<style>
+:root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
+body { margin: 0; }
+img { max-width: 100%; }
+[hidden] { display: none !important; }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Azeret+Mono:wght@400..800&family=Figtree:wght@400..700&display=swap">
+<style>
+/* Layout: one phone-width column. A square graph-paper "stage" is the instrument; controls sit beneath it like a lab readout. */
+:root {
+  --paper: #ECF0F4;
+  --panel: #F8FAFC;
+  --stage: #FBFCFD;
+  --grid: #E3E9EF;
+  --grid-major: #CCD6E1;
+  --ink: #152238;
+  --ink-2: #56647A;
+  --rule: #CDD6E0;
+  --glass: #DAE3EC;
+  --liquid: #EE3F6B;
+  --liquid-top: #F7889F;
+  --liquid-deep: #B91F4A;
+  --btn-bg: #B91F4A;
+  --btn-fg: #FFFFFF;
+  --good: #14845A;
+  --mid: #B07A0A;
+  --off: #7B879A;
+  --font-display: "Archivo", "Arial Black", system-ui, sans-serif;
+  --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "Azeret Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0D1524; --panel: #142036; --stage: #101A2C; --grid: #172338; --grid-major: #22314B;
+    --ink: #E4EAF2; --ink-2: #93A1B6; --rule: #283750; --glass: #1B2A45;
+    --liquid: #FF5A82; --liquid-top: #FF9BB3; --liquid-deep: #FF7396;
+    --btn-bg: #FF5A82; --btn-fg: #0D1524;
+    --good: #3FD08F; --mid: #F2C14A; --off: #8592A8;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0D1524; --panel: #142036; --stage: #101A2C; --grid: #172338; --grid-major: #22314B;
+  --ink: #E4EAF2; --ink-2: #93A1B6; --rule: #283750; --glass: #1B2A45;
+  --liquid: #FF5A82; --liquid-top: #FF9BB3; --liquid-deep: #FF7396;
+  --btn-bg: #FF5A82; --btn-fg: #0D1524;
+  --good: #3FD08F; --mid: #F2C14A; --off: #8592A8;
+  color-scheme: dark;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 16px/1.5 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+}
+.app {
+  max-width: 480px;
+  min-height: 100%;
+  margin: 0 auto;
+  padding-block: 18px 32px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+}
+.screen { display: flex; flex-direction: column; gap: 20px; }
+h1, h2, h3, p { margin: 0; }
+:focus-visible { outline: 3px solid var(--liquid); outline-offset: 3px; }
+
+.eyebrow, .mono-sm {
+  font: 500 12px/1.3 var(--font-mono);
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--ink-2);
+}
+
+/* Buttons */
+.btn {
+  appearance: none;
+  width: 100%;
+  min-height: 54px;
+  padding: 14px 20px;
+  border-radius: 999px;
+  border: 1.5px solid var(--ink);
+  background: transparent;
+  color: var(--ink);
+  font: 750 16px/1 var(--font-display);
+  font-stretch: 110%;
+  letter-spacing: 0.01em;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.2s ease;
+}
+.btn.primary { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-fg); }
+.btn:active:not(:disabled) { transform: translateY(1px) scale(0.99); }
+.btn:disabled { opacity: 0.38; cursor: not-allowed; }
+.btn-row { display: flex; gap: 10px; }
+.ghost {
+  appearance: none; background: none; border: 0; padding: 8px 2px;
+  color: var(--ink-2); font: 600 14px/1 var(--font-body); cursor: pointer;
+}
+
+/* Home */
+.brandbar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+@property --lvl { syntax: "<percentage>"; inherits: false; initial-value: 44%; }
+.wordmark {
+  font: 900 clamp(34px, 10.2vw, 62px)/0.92 var(--font-display);
+  font-stretch: 112%;
+  letter-spacing: -0.025em;
+  white-space: nowrap;
+  color: transparent;
+  background: linear-gradient(to top, var(--liquid) var(--lvl), var(--ink) var(--lvl));
+  -webkit-background-clip: text;
+  background-clip: text;
+  padding-bottom: 0.08em;
+  animation: fillup 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
+}
+@keyframes fillup { from { --lvl: 0%; } to { --lvl: 44%; } }
+.tagline { font-size: 18px; line-height: 1.45; color: var(--ink-2); max-width: 34ch; text-wrap: pretty; }
+
+.daily {
+  display: flex; flex-direction: column; gap: 16px;
+  padding: 20px 18px 16px;
+  background: var(--panel);
+  border: 1.5px solid var(--ink);
+  border-radius: 6px;
+}
+.daily-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.daily-head h2 { font: 850 26px/1.05 var(--font-display); font-stretch: 112%; }
+.chips { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px; }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 6px 11px 6px 8px;
+  border-radius: 999px;
+  background: var(--paper);
+  font: 600 13px/1 var(--font-body);
+}
+.chip svg { width: 16px; height: 16px; flex: none; }
+.daily-played { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.dp-score { font: 900 44px/1 var(--font-display); font-stretch: 112%; font-variant-numeric: tabular-nums; }
+.dp-score span { font: 600 16px var(--font-mono); color: var(--ink-2); margin-left: 4px; }
+.squares { display: flex; gap: 4px; }
+.squares i { width: 18px; height: 18px; border-radius: 3px; background: var(--off); }
+.squares i[data-tier="good"] { background: var(--good); }
+.squares i[data-tier="mid"] { background: var(--mid); }
+.fine { font-size: 13px; color: var(--ink-2); }
+.fine .nextIn { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+
+.practice { display: flex; flex-direction: column; gap: 8px; }
+.modes { list-style: none; margin: 0; padding: 0; border-top: 1.5px solid var(--ink); }
+.mode-btn {
+  display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 14px;
+  width: 100%; padding: 14px 2px;
+  background: none; border: 0; border-bottom: 1px solid var(--rule);
+  color: var(--ink); text-align: left; font: inherit; cursor: pointer;
+}
+.mode-btn:hover .mode-name { color: var(--liquid-deep); }
+.mode-ico {
+  width: 42px; height: 42px; display: grid; place-items: center;
+  border-radius: 10px; background: var(--panel); border: 1px solid var(--rule);
+}
+.mode-ico svg { width: 24px; height: 24px; }
+.mode-name { display: block; font: 800 18px/1.15 var(--font-display); font-stretch: 110%; transition: color 0.15s; }
+.mode-blurb { display: block; font-size: 14px; line-height: 1.35; color: var(--ink-2); }
+.mode-best { font: 600 12px/1.3 var(--font-mono); color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
+.mode-best b { display: block; font-size: 16px; color: var(--ink); }
+
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.stats div { border-top: 1.5px solid var(--rule); padding-top: 8px; }
+dt { font: 500 11px/1.3 var(--font-mono); text-transform: uppercase; letter-spacing: 0.12em; color: var(--ink-2); }
+dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Play */
+.playbar { display: flex; align-items: center; justify-content: space-between; gap: 14px; }
+.pips { display: flex; gap: 5px; flex: 1; max-width: 190px; }
+.pip { flex: 1; height: 6px; border-radius: 3px; background: var(--rule); transition: background-color 0.3s; }
+.pip.now { background: var(--ink); }
+.pip[data-tier="good"] { background: var(--good); }
+.pip[data-tier="mid"] { background: var(--mid); }
+.pip[data-tier="off"] { background: var(--off); }
+.tally { font: 500 12px/1 var(--font-mono); color: var(--ink-2); text-transform: uppercase; letter-spacing: 0.1em; white-space: nowrap; }
+.tally b { font-size: 18px; color: var(--ink); letter-spacing: 0; margin-left: 4px; font-variant-numeric: tabular-nums; }
+#play { gap: 16px; }
+.roundhead { display: flex; flex-direction: column; gap: 6px; }
+.roundhead h2 { font: 850 clamp(22px, 6.2vw, 28px)/1.1 var(--font-display); font-stretch: 106%; text-wrap: balance; }
+.sub { color: var(--ink-2); font-size: 15px; line-height: 1.4; text-wrap: pretty; }
+.stage {
+  position: relative;
+  width: min(100%, 440px, max(250px, calc(100vh - 410px)));
+  width: min(100%, 440px, max(250px, calc(100dvh - 410px)));
+  max-width: 100%;
+  aspect-ratio: 1;
+  margin-inline: auto;
+  border: 1.5px solid var(--ink);
+  background: var(--stage);
+}
+.stage canvas { display: block; width: 100%; height: 100%; }
+.stage.touch canvas { touch-action: none; cursor: crosshair; }
+.stage.pick canvas { cursor: pointer; }
+.btn-row .btn { flex: 1; min-width: 0; }
+.pickmsg { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 850 24px/1.1 var(--font-display); font-stretch: 112%; color: var(--off); }
+.pickmsg[data-ok="true"] { color: var(--good); }
+.pickmsg span { font: 500 12px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+
+.controls, .feedback { display: flex; flex-direction: column; gap: 14px; }
+.readrow { display: flex; align-items: center; justify-content: center; gap: 18px; }
+.nudge {
+  width: 46px; height: 46px; flex: none; border-radius: 50%;
+  border: 1.5px solid var(--rule); background: var(--panel); color: var(--ink);
+  font: 600 22px/1 var(--font-mono); cursor: pointer;
+}
+.readout {
+  min-width: 4ch; text-align: center;
+  font: 800 46px/1 var(--font-mono); font-variant-numeric: tabular-nums;
+}
+.readout small { font-size: 22px; font-weight: 600; color: var(--ink-2); margin-left: 2px; }
+.dial { display: flex; flex-direction: column; gap: 2px; }
+.range { -webkit-appearance: none; appearance: none; width: 100%; height: 34px; margin: 0; background: transparent; cursor: pointer; }
+.range::-webkit-slider-runnable-track {
+  height: 8px; border-radius: 4px;
+  background: linear-gradient(to right, var(--liquid) var(--fill, 50%), var(--rule) var(--fill, 50%));
+}
+.range::-webkit-slider-thumb {
+  -webkit-appearance: none; width: 28px; height: 28px; margin-top: -10px;
+  border-radius: 50%; background: var(--panel); border: 3px solid var(--ink);
+}
+.range::-moz-range-track { height: 8px; border-radius: 4px; background: var(--rule); }
+.range::-moz-range-progress { height: 8px; border-radius: 4px; background: var(--liquid); }
+.range::-moz-range-thumb { width: 22px; height: 22px; border-radius: 50%; background: var(--panel); border: 3px solid var(--ink); }
+.ticks { display: flex; justify-content: space-between; padding: 0 4px; font: 500 11px/1 var(--font-mono); color: var(--ink-2); }
+.count {
+  width: 4.2ch; padding: 2px 0 6px; text-align: center;
+  font: 800 46px/1 var(--font-mono); font-variant-numeric: tabular-nums;
+  color: var(--ink); background: transparent;
+  border: 0; border-bottom: 3px solid var(--ink); border-radius: 0;
+  -moz-appearance: textfield; appearance: textfield;
+}
+.count::placeholder { color: var(--rule); }
+.count::-webkit-outer-spin-button, .count::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.hint { text-align: center; font-size: 14px; color: var(--ink-2); }
+.hold {
+  height: 92px; border-radius: 999px;
+  border: 2px solid var(--ink); background: var(--panel); color: var(--ink);
+  font: 850 20px/1 var(--font-display); font-stretch: 110%;
+  cursor: pointer; touch-action: none;
+  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  transition: transform 0.1s ease, background-color 0.15s ease;
+}
+.hold.down { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-fg); transform: scale(0.98); }
+
+.fb-top { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.verdict { font: 900 32px/1 var(--font-display); font-stretch: 116%; color: var(--off); }
+.verdict[data-tier="good"] { color: var(--good); }
+.verdict[data-tier="mid"] { color: var(--mid); }
+.pts { font: 800 30px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.pairs { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 0; }
+.pairs div { border-top: 1.5px solid var(--rule); padding-top: 8px; min-width: 0; }
+.fact { color: var(--ink-2); font-size: 15px; line-height: 1.45; text-wrap: pretty; }
+
+/* Results */
+.bigscore {
+  display: flex; align-items: baseline; gap: 8px;
+  font: 900 clamp(76px, 25vw, 124px)/0.9 var(--font-display); font-stretch: 112%;
+  letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+}
+.bigscore .of { font: 600 22px/1 var(--font-mono); letter-spacing: 0; color: var(--ink-2); }
+.res-verdict { display: flex; flex-direction: column; gap: 4px; }
+.res-verdict h2 { font: 850 28px/1.1 var(--font-display); font-stretch: 110%; text-wrap: balance; }
+.res-verdict p { color: var(--ink-2); }
+.res-rows { list-style: none; margin: 0; padding: 0; border-top: 1.5px solid var(--ink); }
+.res-rows li {
+  display: grid; grid-template-columns: 26px minmax(0, 1fr) 46px; gap: 12px; align-items: center;
+  padding: 12px 0; border-bottom: 1px solid var(--rule);
+}
+.res-rows svg { width: 24px; height: 24px; }
+.res-name { font: 800 16px/1.2 var(--font-display); font-stretch: 108%; }
+.res-detail { font: 500 12px/1.4 var(--font-mono); color: var(--ink-2); overflow-wrap: anywhere; }
+.bar { height: 6px; margin-top: 7px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+.bar i { display: block; height: 100%; background: var(--off); transform-origin: left; animation: grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.bar i[data-tier="good"] { background: var(--good); }
+.bar i[data-tier="mid"] { background: var(--mid); }
+@keyframes grow { from { transform: scaleX(0); } }
+.res-pts { font: 800 20px/1 var(--font-mono); text-align: right; font-variant-numeric: tabular-nums; }
+.share { display: flex; flex-direction: column; gap: 10px; }
+.share pre {
+  margin: 0; padding: 14px 16px;
+  font: 500 14px/1.65 var(--font-mono);
+  white-space: pre-wrap; overflow-wrap: anywhere;
+  background: var(--panel); color: var(--ink);
+  border: 1.5px dashed var(--grid-major); border-radius: 6px;
+  user-select: text; -webkit-user-select: text;
+}
+.copy-note { min-height: 1.2em; font-size: 13px; color: var(--ink-2); text-align: center; }
+
+@media (prefers-reduced-motion: reduce) {
+  .wordmark, .bar i { animation: none; }
+  .btn, .hold, .pip { transition: none; }
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- HOME -->
+  <section id="home" class="screen">
+    <div class="brandbar">
+      <span class="eyebrow">Estimation games</span>
+      <span class="eyebrow">6 games · 2 min</span>
+    </div>
+    <h1 class="wordmark" aria-label="Guesstimate">guesstimate</h1>
+    <p class="tagline">Quick tests of your eye: volume, count, angle, center, time and color.</p>
+
+    <div class="daily">
+      <div class="daily-head">
+        <h2>Today's five</h2>
+        <span class="mono-sm" id="dailyDate"></span>
+      </div>
+      <ul class="chips" id="dailyChips"></ul>
+      <div class="daily-played" id="dailyPlayed" hidden>
+        <div class="dp-score"><b id="dpTotal">0</b><span>/500</span></div>
+        <div class="squares" id="dpSquares"></div>
+      </div>
+      <button class="btn primary" id="playDaily" type="button">Play today's five</button>
+      <p class="fine" id="dailyFine">Same five for everyone today. New set in <span class="nextIn">--:--:--</span>.</p>
+    </div>
+
+    <div class="practice">
+      <h3 class="eyebrow">Practice one skill · 5 rounds</h3>
+      <ul class="modes" id="modeList"></ul>
+    </div>
+
+    <dl class="stats">
+      <div><dt>Played</dt><dd id="stPlayed">0</dd></div>
+      <div><dt>Streak</dt><dd id="stStreak">0</dd></div>
+      <div><dt>Best day</dt><dd id="stBest">–</dd></div>
+    </dl>
+  </section>
+
+  <!-- PLAY -->
+  <section id="play" class="screen" hidden>
+    <div class="playbar">
+      <button class="ghost" id="quitBtn" type="button">← Home</button>
+      <div class="pips" id="pips" aria-hidden="true"></div>
+      <div class="tally">Score<b id="tally">0</b></div>
+    </div>
+    <div class="roundhead">
+      <p class="eyebrow" id="roundLabel"></p>
+      <h2 id="promptTitle"></h2>
+      <p class="sub" id="promptSub"></p>
+    </div>
+    <div class="stage" id="stage"><canvas id="cv" aria-label="Game board"></canvas></div>
+    <div class="controls" id="controls"></div>
+    <div class="feedback" id="feedback" hidden aria-live="polite">
+      <div class="fb-top">
+        <span class="verdict" id="verdict"></span>
+        <span class="pts" id="pts"></span>
+      </div>
+      <dl class="pairs" id="pairs"></dl>
+      <p class="fact" id="fact"></p>
+      <button class="btn primary" id="nextBtn" type="button">Next round</button>
+    </div>
+  </section>
+
+  <!-- RESULTS -->
+  <section id="results" class="screen" hidden>
+    <p class="eyebrow" id="resLabel"></p>
+    <div class="bigscore"><span id="resTotal">0</span><span class="of">/500</span></div>
+    <div class="res-verdict"><h2 id="resHead"></h2><p id="resSub"></p></div>
+    <ol class="res-rows" id="resRows"></ol>
+    <div class="share">
+      <pre id="shareText"></pre>
+      <button class="btn" id="copyBtn" type="button">Copy result</button>
+      <p class="copy-note" id="copyNote" role="status"></p>
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" id="againBtn" type="button"></button>
+    </div>
+    <button class="ghost" id="resHome" type="button">← Home</button>
+    <p class="fine" id="resNext" hidden>Next daily five in <span class="nextIn">--:--:--</span>.</p>
+  </section>
+</div>
+
+<script>
+(() => {
+"use strict";
+const $ = (s) => document.querySelector(s);
+const W = 400;
+const ORDER = ["pour", "flash", "angle", "center", "hold", "shade"];
+function dailyModes(key) {
+  const r = mulberry32(hashStr("modes-" + key));
+  const extra = shuffle(["angle", "center", "hold", "shade"], r).slice(0, 3);
+  return ORDER.filter((m) => m === "pour" || m === "flash" || extra.includes(m));
+}
+const MONO = "'Azeret Mono', ui-monospace, Menlo, monospace";
+const DISPLAY = "Archivo, 'Arial Black', system-ui, sans-serif";
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+/* ---------- storage (per-viewer, optional) ---------- */
+const store = {
+  get(k, d) { try { const v = localStorage.getItem("gst." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
+  set(k, v) { try { localStorage.setItem("gst." + k, JSON.stringify(v)); } catch (e) {} }
+};
+
+/* ---------- helpers ---------- */
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const r1 = (v) => Math.round(v * 10) / 10;
+const pick = (rng, arr) => arr[Math.floor(rng() * arr.length)];
+function shuffle(arr, rng) { const a = arr.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rng() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; }
+function mulberry32(a) { return function () { a |= 0; a = (a + 0x6D2B79F5) | 0; let t = Math.imul(a ^ (a >>> 15), 1 | a); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+function hashStr(s) { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return h >>> 0; }
+function todayKey(d = new Date()) { return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); }
+function dayNumber(d = new Date()) { return Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(2026, 9, 15)) / 86400000) + 1; }
+function prettyDate(d = new Date()) { return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }); }
+function untilMidnight() { const n = new Date(); const m = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1); let s = Math.max(0, Math.floor((m - n) / 1000)); const h = Math.floor(s / 3600); s -= h * 3600; const mi = Math.floor(s / 60); s -= mi * 60; return [h, mi, s].map((x) => String(x).padStart(2, "0")).join(":"); }
+const tier = (p) => (p >= 80 ? "good" : p >= 50 ? "mid" : "off");
+
+/* ---------- icons ---------- */
+const ICONS = {
+  pour: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6.9 12.5H17.1L16.4 20H7.6Z" style="fill:var(--liquid)" stroke="none"/><path d="M6 4h12l-1.6 16H7.6z"/></svg>',
+  flash: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 3.5h10.5a1.5 1.5 0 0 1 1.5 1.5v10.5"/><path d="M6 6.5h10.5A1.5 1.5 0 0 1 18 8v10.5"/><rect x="3" y="9.5" width="12" height="11" rx="1.5"/><circle cx="7" cy="13.5" r="1.1" fill="currentColor" stroke="none"/><circle cx="11" cy="15" r="1.1" fill="currentColor" stroke="none"/><circle cx="7.8" cy="17.6" r="1.1" fill="currentColor" stroke="none"/></svg>',
+  angle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19h16M4 19 15 6"/><path d="M10 19A6 6 0 0 0 7.87 14.42" style="stroke:var(--liquid)"/></svg>',
+  center: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 9v6M9 12h6" style="stroke:var(--liquid)"/></svg>',
+  hold: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5" style="stroke:var(--liquid)"/><path d="M10 3h4M12 3v3M18.2 7.3l1.3-1.3"/></svg>',
+  shade: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="8" rx="1.5" style="fill:var(--liquid)" stroke="none"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.2" style="fill:var(--liquid-top)"/><rect x="13.5" y="14.5" width="7" height="6" rx="1.2"/></svg>'
+};
+
+/* ---------- canvas ---------- */
+const cv = $("#cv");
+const ctx = cv.getContext("2d");
+const stageEl = $("#stage");
+let scale = 0, dpr = 1;
+let C = {};
+function readTokens() {
+  const cs = getComputedStyle(document.documentElement);
+  ["paper", "panel", "stage", "grid", "grid-major", "ink", "ink-2", "rule", "glass", "liquid", "liquid-top", "liquid-deep", "good", "mid", "off"]
+    .forEach((k) => { C[k] = cs.getPropertyValue("--" + k).trim(); });
+}
+function sizeCanvas() {
+  const r = stageEl.getBoundingClientRect();
+  if (!r.width) return;
+  dpr = Math.min(3, window.devicePixelRatio || 1);
+  cv.width = Math.round(r.width * dpr);
+  cv.height = Math.round(r.width * dpr);
+  scale = r.width / W;
+}
+function text(str, x, y, o = {}) {
+  ctx.font = `${o.weight || 600} ${o.size || 14}px ${o.font === "display" ? DISPLAY : MONO}`;
+  ctx.fillStyle = o.color || C.ink;
+  ctx.textAlign = o.align || "center";
+  ctx.textBaseline = o.base || "middle";
+  ctx.fillText(str, x, y);
+}
+function tag(str, x, y, o = {}) {
+  ctx.font = `${o.weight || 700} ${o.size || 15}px ${MONO}`;
+  const w = ctx.measureText(str).width + 12, h = (o.size || 15) + 10;
+  let left = o.align === "left" ? x : o.align === "right" ? x - w : x - w / 2;
+  left = clamp(left, 4, W - 4 - w);
+  const top = clamp(y - h / 2, 4, W - 4 - h);
+  ctx.fillStyle = C.stage;
+  ctx.beginPath();
+  if (ctx.roundRect) ctx.roundRect(left, top, w, h, 4); else ctx.rect(left, top, w, h);
+  ctx.fill();
+  text(str, left + w / 2, top + h / 2 + 1, { size: o.size || 15, weight: o.weight || 700, color: o.color || C.ink });
+}
+function drawGrid() {
+  ctx.fillStyle = C.stage;
+  ctx.fillRect(0, 0, W, W);
+  ctx.lineWidth = 1;
+  for (let i = 20; i < W; i += 20) {
+    ctx.strokeStyle = i % 100 === 0 ? C["grid-major"] : C.grid;
+    ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, W); ctx.moveTo(0, i); ctx.lineTo(W, i); ctx.stroke();
+  }
+}
+function draw() {
+  if (!cur || !scale) return;
+  ctx.setTransform(scale * dpr, 0, 0, scale * dpr, 0, 0);
+  ctx.clearRect(0, 0, W, W);
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+  ctx.lineCap = "round";
+  ctx.lineJoin = "round";
+  drawGrid();
+  MODES[cur.mode].draw(cur);
+}
+function animate(c, ms) {
+  if (reduceMotion) { c.anim = 1; draw(); return; }
+  const t0 = performance.now();
+  const step = (now) => {
+    if (cur !== c) return;
+    c.anim = Math.min(1, (now - t0) / ms);
+    draw();
+    if (c.anim < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+}
+
+/* ---------- vessels for Pour ---------- */
+const VESSELS = {
+  tumbler: { name: "tumbler", hw: 98, H: 250, stem: false, r: (y) => 0.74 + 0.26 * y },
+  beaker: { name: "beaker", hw: 108, H: 240, stem: false, r: () => 1 },
+  carafe: { name: "carafe", hw: 122, H: 280, stem: false, r: (y) => 1 - 0.62 * y },
+  flask: { name: "flask", hw: 132, H: 300, stem: false, r: (y) => (y < 0.68 ? 1 - (y / 0.68) * 0.8 : 0.2) },
+  bulb: { name: "round flask", hw: 128, H: 296, stem: false, r: (y) => { const s = Math.sqrt(Math.max(0, 1 - ((y - 0.4) / 0.4) ** 2)); return y < 0.4 ? s : Math.max(0.17, s); } },
+  vase: { name: "vase", hw: 112, H: 290, stem: false, r: (y) => 0.26 + 0.74 * Math.abs(2 * y - 1) ** 1.5 },
+  martini: { name: "cocktail glass", hw: 140, H: 175, stem: true, r: (y) => 0.03 + 0.97 * y },
+  wine: { name: "wine glass", hw: 104, H: 195, stem: true, r: (y) => 0.03 + 0.97 * Math.sqrt(Math.max(0, 1 - ((y - 0.6) / 0.62) ** 2)) }
+};
+function integ(v, h) { const N = 600, step = h / N; let s = 0; for (let k = 0; k < N; k++) { const r = v.r((k + 0.5) * step); s += r * r; } return s * step; }
+const totals = {};
+function volPct(v, h) { if (!(v.name in totals)) totals[v.name] = integ(v, 1); return (integ(v, h) / totals[v.name]) * 100; }
+function hForPct(v, pct) { let lo = 0, hi = 1; for (let i = 0; i < 40; i++) { const m = (lo + hi) / 2; if (volPct(v, m) < pct) lo = m; else hi = m; } return (lo + hi) / 2; }
+function vGeom(v) {
+  if (v.stem) { const top = 200 - (v.H + 95) / 2; return { top, bottom: top + v.H }; }
+  return { top: 200 - v.H / 2, bottom: 200 + v.H / 2 };
+}
+const vy = (g, y) => g.bottom - y * (g.bottom - g.top);
+
+/* ---------- dots for Flash ---------- */
+function makeDots(rng, n) {
+  const out = []; let tries = 0;
+  while (out.length < n && tries < 6000) {
+    tries++;
+    const r = 5 + rng() * 5, x = 30 + rng() * 340, y = 30 + rng() * 340;
+    if (out.every((d) => (d.x - x) ** 2 + (d.y - y) ** 2 > (d.r + r + 6) ** 2)) out.push({ x: r1(x), y: r1(y), r: r1(r) });
+  }
+  return out;
+}
+const flashTotal = (p) => p.frames.reduce((a, f) => a + f.length, 0);
+
+/* ---------- angle geometry ---------- */
+function angleGeom(p) {
+  const L = 150, t0 = (p.base * Math.PI) / 180, t1 = ((p.base + p.dir * p.a) * Math.PI) / 180;
+  const P0 = [Math.cos(t0) * L, -Math.sin(t0) * L], P1 = [Math.cos(t1) * L, -Math.sin(t1) * L];
+  const xs = [0, P0[0], P1[0]], ys = [0, P0[1], P1[1]];
+  const cx = (Math.min(...xs) + Math.max(...xs)) / 2, cy = (Math.min(...ys) + Math.max(...ys)) / 2;
+  return { V: [200 - cx, 200 - cy], t0, t1, L };
+}
+function centerTarget(p) {
+  if (p.type === "segment") return [(p.x1 + p.x2) / 2, (p.y1 + p.y2) / 2];
+  return [p.cx, p.cy];
+}
+
+/* ---------- shared controls ---------- */
+const controls = $("#controls");
+function sliderControl(c, o) {
+  controls.innerHTML =
+    `<div class="dial">
+      <div class="readrow">
+        <button class="nudge" type="button" data-d="-1" aria-label="Lower by one">−</button>
+        <output class="readout" id="ro" for="slider">${o.start}<small>${o.unit}</small></output>
+        <button class="nudge" type="button" data-d="1" aria-label="Raise by one">+</button>
+      </div>
+      <input class="range" id="slider" type="range" min="0" max="${o.max}" step="1" value="${o.start}" aria-label="${o.label}">
+      <div class="ticks">${o.ticks.map((t) => `<span>${t}</span>`).join("")}</div>
+    </div>
+    <button class="btn primary" id="lockBtn" type="button">Lock in</button>`;
+  const s = $("#slider"), ro = $("#ro");
+  const upd = () => { ro.firstChild.nodeValue = s.value; s.style.setProperty("--fill", (s.value / o.max) * 100 + "%"); };
+  s.addEventListener("input", upd);
+  controls.querySelectorAll(".nudge").forEach((b) => b.addEventListener("click", () => { s.value = clamp(+s.value + +b.dataset.d, 0, o.max); upd(); }));
+  $("#lockBtn").addEventListener("click", () => lock(+s.value));
+  upd();
+}
+
+/* ---------- the five minigames ---------- */
+const MODES = {
+  pour: {
+    name: "Pour", blurb: "Judge how full a glass is by volume.",
+    gen(rng, i, daily, bag) {
+      const ids = Object.keys(VESSELS);
+      let id;
+      if (daily) id = pick(rng, ids.filter((x) => x !== "beaker"));
+      else { bag.order = bag.order || shuffle(ids, rng); id = bag.order[i % bag.order.length]; }
+      const vol = r1(8 + rng() * 84);
+      return { id, vol, h: Math.round(hForPct(VESSELS[id], vol) * 10000) / 10000 };
+    },
+    prompt: (p) => ({ title: `How full is this ${VESSELS[p.id].name}?`, sub: "Guess the share of its volume that is liquid. The height can fool you." }),
+    setup(c) {
+      c.anim = 0; animate(c, 800);
+      sliderControl(c, { max: 100, start: 50, unit: "%", label: "Your guess, percent full by volume", ticks: [0, 25, 50, 75, 100] });
+    },
+    score: (p, g) => 100 - 3 * Math.abs(g - p.vol),
+    describe(p, g) {
+      const hp = Math.round(p.h * 100), vp = Math.round(p.vol);
+      const fact = p.id === "beaker"
+        ? "Straight sides, so height and volume match here."
+        : `The liquid reaches ${hp}% of the height but holds ${vp}% of the volume.`;
+      return { pairs: [["You", g + "%"], ["Actual", vp + "%"]], fact };
+    },
+    draw(c) {
+      const p = c.p, v = VESSELS[p.id], g = vGeom(v), hw = v.hw;
+      const a = c.anim == null ? 1 : c.anim, eased = 1 - (1 - a) ** 3, fh = p.h * eased;
+      const N = 120, L = [], R = [];
+      for (let k = 0; k <= N; k++) { const y = k / N, r = v.r(y) * hw; L.push([200 - r, vy(g, y)]); R.push([200 + r, vy(g, y)]); }
+      // glass body
+      ctx.beginPath(); L.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y)));
+      for (let k = N; k >= 0; k--) ctx.lineTo(R[k][0], R[k][1]);
+      ctx.closePath(); ctx.fillStyle = C.glass; ctx.fill();
+      // liquid
+      if (fh > 0.002) {
+        const M = Math.max(4, Math.ceil(N * fh));
+        ctx.beginPath();
+        for (let k = 0; k <= M; k++) { const y = (fh * k) / M; const x = 200 - v.r(y) * hw; k ? ctx.lineTo(x, vy(g, y)) : ctx.moveTo(x, vy(g, y)); }
+        for (let k = M; k >= 0; k--) { const y = (fh * k) / M; ctx.lineTo(200 + v.r(y) * hw, vy(g, y)); }
+        ctx.closePath(); ctx.fillStyle = C.liquid; ctx.fill();
+        const rs = v.r(fh) * hw, ys = vy(g, fh);
+        ctx.strokeStyle = C["liquid-top"]; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.moveTo(200 - rs + 2, ys + 1.5); ctx.lineTo(200 + rs - 2, ys + 1.5); ctx.stroke();
+      }
+      // outline + lip
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 3.5;
+      ctx.beginPath(); ctx.moveTo(L[N][0] - 5, L[N][1] - 3);
+      for (let k = N; k >= 0; k--) ctx.lineTo(L[k][0], L[k][1]);
+      ctx.lineTo(R[0][0], R[0][1]);
+      for (let k = 0; k <= N; k++) ctx.lineTo(R[k][0], R[k][1]);
+      ctx.lineTo(R[N][0] + 5, R[N][1] - 3);
+      ctx.stroke();
+      if (v.stem) {
+        ctx.lineWidth = 5;
+        ctx.beginPath(); ctx.moveTo(200, g.bottom); ctx.lineTo(200, g.bottom + 88); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(138, g.bottom + 94); ctx.quadraticCurveTo(200, g.bottom + 80, 262, g.bottom + 94); ctx.stroke();
+      } else if (p.id === "bulb") {
+        ctx.strokeStyle = C["ink-2"]; ctx.lineWidth = 3;
+        ctx.beginPath(); ctx.ellipse(200, g.bottom - 4, 46, 9, 0, 0, Math.PI * 2); ctx.stroke();
+      } else {
+        ctx.lineWidth = 6; ctx.beginPath(); ctx.moveTo(L[0][0] + 2, L[0][1]); ctx.lineTo(R[0][0] - 2, R[0][1]); ctx.stroke();
+      }
+      // reveal
+      if (c.phase === "reveal") {
+        const yt = vy(g, p.h), rt = v.r(p.h) * hw;
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(200 + rt + 6, yt); ctx.lineTo(396, yt); ctx.stroke();
+        tag(Math.round(p.vol) + "%", 396, yt - 14, { align: "right", size: 16 });
+        text("actual", 392, yt + 13, { align: "right", size: 11, weight: 500, color: C["ink-2"] });
+        const hg = hForPct(v, c.guess), ygs = vy(g, hg), rg = v.r(hg) * hw;
+        ctx.strokeStyle = C["liquid-deep"]; ctx.lineWidth = 2.5; ctx.setLineDash([7, 6]);
+        ctx.beginPath(); ctx.moveTo(4, ygs); ctx.lineTo(200 + rg, ygs); ctx.stroke(); ctx.setLineDash([]);
+        tag(c.guess + "%", 4, ygs - 14, { align: "left", size: 16, color: C["liquid-deep"] });
+        text("you", 8, ygs + 13, { align: "left", size: 11, weight: 500, color: C["liquid-deep"] });
+      }
+    }
+  },
+
+  flash: {
+    name: "Flash", blurb: "Three frames flash by. Add up every dot.",
+    gen(rng, i, daily) {
+      const dur = daily ? 650 : [900, 800, 700, 600, 500][i];
+      const [lo, hi] = daily ? [7, 22] : [[3, 9], [5, 13], [7, 17], [9, 21], [11, 26]][i];
+      return { dur, frames: [0, 1, 2].map(() => makeDots(rng, lo + Math.floor(rng() * (hi - lo + 1)))) };
+    },
+    prompt: (p) => ({ title: "How many dots in total?", sub: `Three frames, ${p.dur / 1000} s each. Count across all of them.` }),
+    setup(c) {
+      c.fphase = "ready";
+      controls.innerHTML = `<button class="btn primary" id="flashBtn" type="button">Flash the frames</button>`;
+      $("#flashBtn").addEventListener("click", (e) => {
+        e.currentTarget.disabled = true; e.currentTarget.textContent = "Watch closely…";
+        let t = 0; const seq = [];
+        [3, 2, 1].forEach((n) => { seq.push([t, () => { c.fphase = "count"; c.cd = n; }]); t += 420; });
+        c.p.frames.forEach((f, k) => {
+          seq.push([t, () => { c.fphase = "frame"; c.fidx = k; }]); t += c.p.dur;
+          seq.push([t, () => { c.fphase = "gap"; }]); t += 260;
+        });
+        seq.push([t, () => { c.fphase = "input"; countInput(c); }]);
+        seq.forEach(([at, fn]) => timers.push(setTimeout(() => { if (cur !== c) return; fn(); draw(); }, at)));
+      });
+    },
+    score(p, g) { const t = flashTotal(p); return 100 - 250 * (Math.abs(g - t) / t); },
+    describe(p, g) {
+      const t = flashTotal(p), d = g - t;
+      const fact = d === 0 ? "Exactly right. Every dot counted."
+        : `${p.frames.map((f) => f.length).join(" + ")} = ${t}. You ${d > 0 ? "over" : "under"}counted by ${Math.abs(d)} (${Math.round((Math.abs(d) / t) * 100)}%).`;
+      return { pairs: [["You", String(g)], ["Actual", String(t)]], fact };
+    },
+    draw(c) {
+      const p = c.p;
+      if (c.phase === "reveal") {
+        const s = 112, gap = 16, x0 = (W - (3 * s + 2 * gap)) / 2;
+        p.frames.forEach((f, k) => {
+          const x = x0 + k * (s + gap), y = 84;
+          text(`frame ${k + 1}`, x + s / 2, y - 16, { size: 11, weight: 500, color: C["ink-2"] });
+          ctx.fillStyle = C.panel; ctx.fillRect(x, y, s, s);
+          ctx.strokeStyle = C.rule; ctx.lineWidth = 1.5; ctx.strokeRect(x, y, s, s);
+          ctx.fillStyle = C.ink;
+          f.forEach((d) => { ctx.beginPath(); ctx.arc(x + d.x * s / W, y + d.y * s / W, Math.max(1.6, d.r * s / W), 0, Math.PI * 2); ctx.fill(); });
+          text(String(f.length), x + s / 2, y + s + 26, { size: 22, weight: 800 });
+        });
+        text(`= ${flashTotal(p)} dots`, 200, 290, { size: 28, weight: 900, font: "display" });
+        text(`you said ${c.guess}`, 200, 330, { size: 16, weight: 700, color: C["liquid-deep"] });
+        return;
+      }
+      if (c.fphase === "count") { text(String(c.cd), 200, 206, { size: 132, weight: 900, font: "display", color: C["ink-2"] }); return; }
+      if (c.fphase === "frame") {
+        ctx.fillStyle = C.ink;
+        p.frames[c.fidx].forEach((d) => { ctx.beginPath(); ctx.arc(d.x, d.y, d.r, 0, Math.PI * 2); ctx.fill(); });
+        tag(`${c.fidx + 1}/3`, 8, 18, { align: "left", size: 12, color: C["ink-2"] });
+        return;
+      }
+      if (c.fphase === "gap") return;
+      if (c.fphase === "input") {
+        text("?", 200, 186, { size: 150, weight: 900, font: "display", color: C["grid-major"] });
+        text("dots across all three frames", 200, 300, { size: 13, weight: 500, color: C["ink-2"] });
+        return;
+      }
+      text("3 frames", 200, 176, { size: 46, weight: 900, font: "display" });
+      text(`${p.dur / 1000} s each · count every dot`, 200, 226, { size: 13, weight: 500, color: C["ink-2"] });
+    }
+  },
+
+  angle: {
+    name: "Angle", blurb: "Name the degrees by eye.",
+    gen(rng, i, daily) {
+      return { a: Math.round(daily ? 12 + rng() * 156 : 6 + rng() * 168), base: Math.round(rng() * 360), dir: rng() < 0.5 ? 1 : -1 };
+    },
+    prompt: () => ({ title: "How wide is this angle?", sub: "Set your guess in degrees, from 0 to 180." }),
+    setup(c) { sliderControl(c, { max: 180, start: 90, unit: "°", label: "Your guess in degrees", ticks: [0, 45, 90, 135, 180] }); },
+    score: (p, g) => 100 - 3 * Math.abs(g - p.a),
+    describe(p, g) {
+      const d = g - p.a;
+      return { pairs: [["You", g + "°"], ["Actual", p.a + "°"]], fact: d === 0 ? "Dead on." : `You were ${Math.abs(d)}° too ${d > 0 ? "wide" : "narrow"}.` };
+    },
+    draw(c) {
+      const p = c.p, g = angleGeom(p), [x, y] = g.V;
+      const ray = (t, len) => [x + Math.cos(t) * len, y - Math.sin(t) * len];
+      if (c.phase === "reveal") {
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.arc(x, y, 56, -g.t0, -g.t1, p.dir > 0); ctx.closePath();
+        ctx.globalAlpha = 0.55; ctx.fillStyle = C["liquid-top"]; ctx.fill(); ctx.globalAlpha = 1;
+      }
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 6;
+      ctx.beginPath(); ctx.moveTo(...ray(g.t0, g.L)); ctx.lineTo(x, y); ctx.lineTo(...ray(g.t1, g.L)); ctx.stroke();
+      ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(x, y, 6, 0, Math.PI * 2); ctx.fill();
+      if (c.phase === "reveal") {
+        const tg = ((p.base + p.dir * c.guess) * Math.PI) / 180;
+        ctx.strokeStyle = C["liquid-deep"]; ctx.lineWidth = 3; ctx.setLineDash([8, 7]);
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(...ray(tg, 172)); ctx.stroke(); ctx.setLineDash([]);
+        const bis = (g.t0 + g.t1) / 2, [bx, by] = ray(bis, 88);
+        tag(p.a + "°", bx, by, { size: 18 });
+        const [gx, gy] = ray(tg, 196);
+        tag("you " + c.guess + "°", clamp(gx, 50, 350), clamp(gy, 20, 380), { size: 14, color: C["liquid-deep"] });
+      }
+    }
+  },
+
+  center: {
+    name: "Center", blurb: "Find the exact middle, no ruler.",
+    gen(rng, i, daily, bag) {
+      let type;
+      if (daily) type = pick(rng, ["circle", "segment", "arc"]);
+      else { bag.types = bag.types || shuffle(["circle", "segment", "arc", "circle", "segment"], rng); type = bag.types[i % 5]; }
+      if (type === "segment") {
+        const L = 150 + rng() * 190, ang = rng() * Math.PI, dx = (Math.cos(ang) * L) / 2, dy = (Math.sin(ang) * L) / 2;
+        const mx = 28 + Math.abs(dx) + rng() * (344 - 2 * Math.abs(dx)), my = 28 + Math.abs(dy) + rng() * (344 - 2 * Math.abs(dy));
+        return { type, x1: r1(mx - dx), y1: r1(my - dy), x2: r1(mx + dx), y2: r1(my + dy) };
+      }
+      const r = type === "arc" ? 90 + rng() * 75 : 60 + rng() * 100;
+      const span = 352 - 2 * r;
+      return { type, r: r1(r), cx: r1(r + 24 + rng() * span), cy: r1(r + 24 + rng() * span), start: Math.round(rng() * 360), sweep: Math.round(150 + rng() * 110) };
+    },
+    prompt(p) {
+      const t = { circle: "Tap the center of the circle", arc: "Tap the center this arc curves around", segment: "Tap the midpoint of the line" }[p.type];
+      return { title: t, sub: "Drag to fine-tune. Arrow keys nudge one step." };
+    },
+    setup(c) {
+      c.mark = null;
+      stageEl.classList.add("touch");
+      cv.tabIndex = 0;
+      controls.innerHTML = `<p class="hint" id="cHint">Tap the grid to place your mark.</p><button class="btn primary" id="lockBtn" type="button" disabled>Lock in</button>`;
+      $("#lockBtn").addEventListener("click", () => { if (c.mark) lock(c.mark.slice()); });
+    },
+    score(p, g) { const [tx, ty] = centerTarget(p); return 100 - 4 * Math.hypot(g[0] - tx, g[1] - ty); },
+    describe(p, g) {
+      const [tx, ty] = centerTarget(p), dx = g[0] - tx, dy = g[1] - ty, e = Math.hypot(dx, dy);
+      const drift = [];
+      if (Math.abs(dy) > 1.5) drift.push(dy < 0 ? "high" : "low");
+      if (Math.abs(dx) > 1.5) drift.push(dx < 0 ? "left" : "right");
+      return { pairs: [["Miss", e.toFixed(1) + " px"], ["Drift", drift.length ? drift.join(", ") : "none"]], fact: "Measured on the 400 px grid. Each small square is 20 px." };
+    },
+    draw(c) {
+      const p = c.p;
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 4.5;
+      if (p.type === "circle") { ctx.beginPath(); ctx.arc(p.cx, p.cy, p.r, 0, Math.PI * 2); ctx.stroke(); }
+      else if (p.type === "arc") { const s = (p.start * Math.PI) / 180; ctx.beginPath(); ctx.arc(p.cx, p.cy, p.r, s, s + (p.sweep * Math.PI) / 180); ctx.stroke(); }
+      else {
+        ctx.beginPath(); ctx.moveTo(p.x1, p.y1); ctx.lineTo(p.x2, p.y2); ctx.stroke();
+        const ang = Math.atan2(p.y2 - p.y1, p.x2 - p.x1), nx = -Math.sin(ang) * 10, ny = Math.cos(ang) * 10;
+        ctx.lineWidth = 3;
+        [[p.x1, p.y1], [p.x2, p.y2]].forEach(([x, y]) => { ctx.beginPath(); ctx.moveTo(x - nx, y - ny); ctx.lineTo(x + nx, y + ny); ctx.stroke(); });
+      }
+      const m = c.phase === "reveal" ? c.guess : c.mark;
+      if (m) {
+        const [mx, my] = m;
+        ctx.strokeStyle = C.liquid; ctx.lineWidth = 1; ctx.globalAlpha = 0.65;
+        ctx.beginPath(); ctx.moveTo(mx, 0); ctx.lineTo(mx, W); ctx.moveTo(0, my); ctx.lineTo(W, my); ctx.stroke();
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = C["liquid-deep"]; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.arc(mx, my, 10, 0, Math.PI * 2); ctx.stroke();
+        ctx.fillStyle = C["liquid-deep"]; ctx.beginPath(); ctx.arc(mx, my, 2.6, 0, Math.PI * 2); ctx.fill();
+      }
+      if (c.phase === "reveal") {
+        const [tx, ty] = centerTarget(p), [gx, gy] = c.guess, e = Math.hypot(gx - tx, gy - ty);
+        ctx.strokeStyle = C["ink-2"]; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(tx, ty); ctx.stroke(); ctx.setLineDash([]);
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 2.5;
+        ctx.beginPath(); ctx.moveTo(tx - 13, ty); ctx.lineTo(tx + 13, ty); ctx.moveTo(tx, ty - 13); ctx.lineTo(tx, ty + 13); ctx.stroke();
+        ctx.beginPath(); ctx.arc(tx, ty, 5.5, 0, Math.PI * 2); ctx.stroke();
+        let ux = tx - gx, uy = ty - gy; const n = Math.hypot(ux, uy);
+        if (n < 1) { ux = 0; uy = -1; } else { ux /= n; uy /= n; }
+        tag(e.toFixed(1) + " px off", tx + ux * 46, ty + uy * 34, { size: 14 });
+      }
+    }
+  },
+
+  hold: {
+    name: "Hold", blurb: "Feel the seconds without a clock.",
+    gen(rng, i, daily) { return { t: r1(daily ? 2.5 + rng() * 4.5 : 2 + rng() * 5.5) }; },
+    prompt: (p) => ({ title: `Hold for exactly ${p.t.toFixed(1)} seconds`, sub: "No clock and no ticking. Let go when it feels right." }),
+    setup(c) {
+      controls.innerHTML = `<button class="hold" id="holdBtn" type="button">Press and hold</button><p class="hint" id="hHint">Space bar works too.</p>`;
+      const b = $("#holdBtn");
+      let t0 = 0, holding = false;
+      const begin = () => {
+        if (holding || c.phase !== "guess") return;
+        holding = true; t0 = performance.now();
+        b.classList.add("down"); b.textContent = "Let go at " + c.p.t.toFixed(1) + " s";
+        c.holding = true; draw();
+      };
+      const end = () => {
+        if (!holding) return;
+        holding = false; const dt = (performance.now() - t0) / 1000;
+        b.classList.remove("down"); c.holding = false;
+        if (dt < 0.25) { b.textContent = "Press and hold"; $("#hHint").textContent = "Keep pressing, then let go at the target."; draw(); return; }
+        lock(Math.round(dt * 100) / 100);
+      };
+      b.addEventListener("pointerdown", (e) => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} begin(); });
+      b.addEventListener("pointerup", end);
+      b.addEventListener("pointercancel", end);
+      b.addEventListener("contextmenu", (e) => e.preventDefault());
+      b.addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); begin(); } });
+      b.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); end(); } });
+      b.addEventListener("click", (e) => e.preventDefault());
+    },
+    score: (p, g) => 100 - 400 * (Math.abs(g - p.t) / p.t),
+    describe(p, g) {
+      const d = g - p.t;
+      return { pairs: [["You", g.toFixed(2) + " s"], ["Target", p.t.toFixed(2) + " s"]], fact: `${Math.abs(d).toFixed(2)} s ${d >= 0 ? "late" : "early"}, ${Math.round((Math.abs(d) / p.t) * 100)}% off.` };
+    },
+    draw(c) {
+      const p = c.p;
+      if (c.phase !== "reveal") {
+        text("TARGET", 200, 112, { size: 12, weight: 600, color: C["ink-2"] });
+        text(p.t.toFixed(1), 200, 200, { size: 124, weight: 900, font: "display", color: c.holding ? C.liquid : C.ink });
+        text("seconds", 200, 276, { size: 16, weight: 500, color: C["ink-2"] });
+        if (c.holding) text("holding…", 200, 322, { size: 14, weight: 700, color: C["liquid-deep"] });
+        return;
+      }
+      const g = c.guess, d = g - p.t, tmax = Math.max(4, Math.ceil(Math.max(g, p.t) * 1.25));
+      const x0 = 36, x1 = 364, y = 236, X = (t) => x0 + ((x1 - x0) * t) / tmax;
+      text((d >= 0 ? "+" : "−") + Math.abs(d).toFixed(2) + " s", 200, 104, { size: 58, weight: 900, font: "display" });
+      text(d >= 0 ? "too long" : "too short", 200, 150, { size: 14, weight: 500, color: C["ink-2"] });
+      ctx.globalAlpha = 0.55; ctx.fillStyle = C["liquid-top"];
+      ctx.fillRect(Math.min(X(g), X(p.t)), y - 7, Math.abs(X(g) - X(p.t)), 14); ctx.globalAlpha = 1;
+      ctx.strokeStyle = C["ink-2"]; ctx.lineWidth = 2;
+      ctx.beginPath(); ctx.moveTo(x0, y); ctx.lineTo(x1, y); ctx.stroke();
+      for (let s = 0; s <= tmax; s++) {
+        ctx.beginPath(); ctx.moveTo(X(s), y - 5); ctx.lineTo(X(s), y + 5); ctx.stroke();
+        if (Math.abs(X(s) - X(g)) > 12) text(String(s), X(s), y + 20, { size: 11, weight: 500, color: C["ink-2"] });
+      }
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(X(p.t), y - 40); ctx.lineTo(X(p.t), y); ctx.stroke();
+      text("target " + p.t.toFixed(2), clamp(X(p.t), 70, 330), y - 54, { size: 13, weight: 700 });
+      ctx.strokeStyle = C["liquid-deep"];
+      ctx.beginPath(); ctx.moveTo(X(g), y); ctx.lineTo(X(g), y + 42); ctx.stroke();
+      text("you " + g.toFixed(2), clamp(X(g), 60, 340), y + 58, { size: 13, weight: 700, color: C["liquid-deep"] });
+    }
+  }
+};
+
+/* ---------- color math for Shade (OKLab, perceptual) ---------- */
+const toLin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+const fromLin = (c) => (c <= 0.0031308 ? 12.92 * c : 1.055 * c ** (1 / 2.4) - 0.055);
+function labToLinear([L, a, b]) {
+  const l = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+  const m = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+  const s = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+  return [4.0767416621 * l - 3.3077115913 * m + 0.2309699292 * s,
+    -1.2684380046 * l + 2.6097574011 * m - 0.3413193965 * s,
+    -0.0041960863 * l - 0.7034186147 * m + 1.707614701 * s];
+}
+function labToHex(lab) {
+  const lin = labToLinear(lab);
+  if (!lin.every((v) => v >= -1e-4 && v <= 1.0001)) return null;
+  return "#" + lin.map((v) => Math.round(clamp(fromLin(clamp(v, 0, 1)), 0, 1) * 255).toString(16).padStart(2, "0")).join("");
+}
+function hexToLab(hex) {
+  const [r, g, b] = [1, 3, 5].map((i) => toLin(parseInt(hex.slice(i, i + 2), 16) / 255));
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s];
+}
+const labDist = (p, q) => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2]);
+function shadePick(rng, gap) {
+  const dir = () => { const v = [rng() * 2 - 1, rng() * 2 - 1, rng() * 2 - 1]; const n = Math.hypot(...v) || 1; return v.map((x) => x / n); };
+  for (let t = 0; t < 400; t++) {
+    const L = 0.5 + rng() * 0.36, Ch = 0.05 + rng() * 0.12, h = rng() * Math.PI * 2;
+    const base = [L, Ch * Math.cos(h), Ch * Math.sin(h)];
+    const o = labToHex(base); if (!o) continue;
+    const near = 0.016 + rng() * 0.012, d1 = dir(), d2 = dir();
+    const A = labToHex(base.map((x, i) => x + d1[i] * near));
+    const B = labToHex(base.map((x, i) => x + d2[i] * (near + gap)));
+    if (!A || !B || A === o) continue;
+    const ol = hexToLab(o), dn = labDist(ol, hexToLab(A)) * 100, df = labDist(ol, hexToLab(B)) * 100;
+    if (df - dn < gap * 70) continue;
+    const nl = rng() < 0.5;
+    return { o, left: nl ? A : B, right: nl ? B : A, near: nl ? "left" : "right", dl: r1(nl ? dn : df), dr: r1(nl ? df : dn), gap: r1(df - dn) };
+  }
+  return { o: "#4a7bd0", left: "#5585d6", right: "#3f63b8", near: "left", dl: 2.6, dr: 7.9, gap: 5.3 };
+}
+function shadeControls(c) {
+  const k = c.k;
+  if (c.sphase === "ready") {
+    controls.innerHTML = `<button class="btn primary" id="shBtn" type="button">Show the color</button><p class="hint">It stays up for 1.5 s. Pick 1 of 5.</p>`;
+    $("#shBtn").addEventListener("click", () => shadeMemo(c));
+  } else if (c.sphase === "memo" || c.sphase === "mask") {
+    controls.innerHTML = `<button class="btn" type="button" disabled>Memorize it…</button><p class="hint">Pick ${k + 1} of 5</p>`;
+  } else if (c.sphase === "choose") {
+    controls.innerHTML = `<div class="btn-row"><button class="btn" id="shL" type="button">← Left</button><button class="btn" id="shR" type="button">Right →</button></div><p class="hint">Tap the shade closer to the one you saw.</p>`;
+    $("#shL").addEventListener("click", () => shadeChoose(c, "left"));
+    $("#shR").addEventListener("click", () => shadeChoose(c, "right"));
+  } else if (c.sphase === "pickfb") {
+    const ch = c.choices[k], last = k >= c.p.picks.length - 1;
+    controls.innerHTML = `<p class="pickmsg" data-ok="${ch.ok}">${ch.ok ? "Caught it." : "Missed."}<span>Pick ${k + 1} of 5</span></p><button class="btn primary" id="shNext" type="button">${last ? "See round result" : "Next color"}</button>`;
+    const nb = $("#shNext");
+    nb.addEventListener("click", () => {
+      if (last) lock(c.choices.slice());
+      else { c.k++; shadeMemo(c); }
+    });
+    try { nb.focus({ preventScroll: true }); } catch (_) {}
+  }
+}
+function shadeMemo(c) {
+  c.sphase = "memo"; c.memoT = 0; shadeControls(c);
+  const t0 = performance.now(), MEMO = 1500;
+  const step = (now) => {
+    if (cur !== c || c.sphase !== "memo") return;
+    c.memoT = Math.min(1, (now - t0) / MEMO); draw();
+    if (c.memoT < 1) requestAnimationFrame(step);
+  };
+  requestAnimationFrame(step);
+  timers.push(setTimeout(() => { if (cur !== c) return; c.sphase = "mask"; draw(); }, MEMO));
+  timers.push(setTimeout(() => {
+    if (cur !== c) return;
+    c.sphase = "choose"; stageEl.classList.add("pick"); shadeControls(c); draw();
+  }, MEMO + 450));
+}
+function shadeChoose(c, side) {
+  if (cur !== c || c.phase !== "guess" || c.sphase !== "choose") return;
+  const pk = c.p.picks[c.k];
+  c.choices.push({ side, ok: side === pk.near, gap: pk.gap });
+  c.sphase = "pickfb"; stageEl.classList.remove("pick");
+  shadeControls(c); draw();
+}
+cv.addEventListener("pointerdown", (e) => {
+  if (!cur || cur.mode !== "shade" || cur.phase !== "guess" || cur.sphase !== "choose") return;
+  const r = cv.getBoundingClientRect(), x = ((e.clientX - r.left) / r.width) * W, y = ((e.clientY - r.top) / r.height) * W;
+  if (y < 44 || y > 336) return;
+  if (x >= 16 && x <= 192) shadeChoose(cur, "left");
+  else if (x >= 208 && x <= 384) shadeChoose(cur, "right");
+});
+MODES.shade = {
+  name: "Shade", blurb: "Remember a color, pick the closer shade.",
+  gen(rng, i, daily) {
+    const ease = daily ? 0.9 : 1 - 0.08 * i;
+    return { picks: [0.08, 0.065, 0.05, 0.04, 0.032].map((g) => shadePick(rng, g * ease)) };
+  },
+  prompt: () => ({ title: "Which shade is closer?", sub: "Memorize a color, then pick the closer of two shades. Five picks, each one harder." }),
+  setup(c) { c.k = 0; c.choices = []; c.sphase = "ready"; shadeControls(c); },
+  score: (p, g) => 20 * g.filter((x) => x.ok).length,
+  describe(p, g) {
+    const hits = g.filter((x) => x.ok), sharp = hits.length ? Math.min(...hits.map((x) => x.gap)) : null;
+    return {
+      pairs: [["Caught", `${hits.length} of ${g.length}`], ["Sharpest", sharp == null ? "none" : "gap " + sharp.toFixed(1)]],
+      fact: "The two shades got closer together with every pick. Gap is how much farther the wrong shade was from the original, measured in ΔE, a standard unit of color difference."
+    };
+  },
+  draw(c) {
+    const p = c.p;
+    const swatch = (hex, x, y, w, h) => { ctx.fillStyle = hex; ctx.fillRect(x, y, w, h); };
+    if (c.phase === "reveal") {
+      text("original", 52, 18, { size: 11, weight: 500, color: C["ink-2"] });
+      text("your pick", 140, 18, { size: 11, weight: 500, color: C["ink-2"] });
+      p.picks.forEach((pk, k) => {
+        const y = 34 + k * 72, ch = c.guess[k];
+        swatch(pk.o, 24, y, 56, 56);
+        swatch(ch.side === "left" ? pk.left : pk.right, 112, y, 56, 56);
+        text(ch.ok ? "✓ caught" : "✗ missed", 192, y + 18, { size: 15, weight: 800, align: "left", color: ch.ok ? C.good : C.off });
+        text(`gap ${pk.gap.toFixed(1)}`, 192, y + 40, { size: 12, weight: 500, align: "left", color: C["ink-2"] });
+      });
+      return;
+    }
+    const pk = p.picks[c.k];
+    if (c.sphase === "memo") {
+      swatch(pk.o, 0, 0, W, W);
+      tag("remember this", 10, 22, { align: "left", size: 12, color: C["ink-2"] });
+      ctx.fillStyle = C.stage; ctx.fillRect(0, W - 8, W * (1 - (c.memoT || 0)), 8);
+      return;
+    }
+    if (c.sphase === "mask") return;
+    if (c.sphase === "choose" || c.sphase === "pickfb") {
+      const fb = c.sphase === "pickfb", top = fb ? 118 : 44, h = fb ? 210 : 292;
+      if (fb) { swatch(pk.o, 16, 16, 368, 80); tag("original", 22, 32, { align: "left", size: 12, color: C["ink-2"] }); }
+      else text("Which is closer to the color you saw?", 200, 24, { size: 13, weight: 600, color: C["ink-2"] });
+      swatch(pk.left, 16, top, 176, h);
+      swatch(pk.right, 208, top, 176, h);
+      if (fb) {
+        const ch = c.choices[c.k], cx = ch.side === "left" ? 16 : 208;
+        ctx.strokeStyle = C.ink; ctx.lineWidth = 4; ctx.strokeRect(cx - 5, top - 5, 186, h + 10);
+        [["left", 104, pk.dl], ["right", 296, pk.dr]].forEach(([side, x, d]) => {
+          const isNear = side === pk.near;
+          text(`${isNear ? "closer" : "farther"} · ΔE ${d.toFixed(1)}`, x, top + h + 24, { size: 13, weight: 700, color: isNear ? C.good : C["ink-2"] });
+          if (side === ch.side) text("your pick", x, top + h + 44, { size: 12, weight: 500, color: C["ink-2"] });
+        });
+      } else {
+        text("left", 104, 360, { size: 12, weight: 500, color: C["ink-2"] });
+        text("right", 296, 360, { size: 12, weight: 500, color: C["ink-2"] });
+      }
+      return;
+    }
+    text("5 colors", 200, 170, { size: 46, weight: 900, font: "display" });
+    text("1.5 s each · then pick the closer shade", 200, 222, { size: 13, weight: 500, color: C["ink-2"] });
+  }
+};
+
+function countInput(c) {
+  controls.innerHTML =
+    `<div class="readrow">
+      <button class="nudge" type="button" data-d="-1" aria-label="One fewer">−</button>
+      <input class="count" id="countIn" type="number" inputmode="numeric" min="0" max="999" placeholder="0" aria-label="Total dots across all three frames">
+      <button class="nudge" type="button" data-d="1" aria-label="One more">+</button>
+    </div>
+    <button class="btn primary" id="lockBtn" type="button" disabled>Lock in</button>`;
+  const inp = $("#countIn"), lb = $("#lockBtn");
+  const valid = () => inp.value !== "" && +inp.value >= 0;
+  const sync = () => { lb.disabled = !valid(); };
+  inp.addEventListener("input", sync);
+  inp.addEventListener("keydown", (e) => { if (e.key === "Enter" && valid()) { inp.blur(); lock(Math.round(+inp.value)); } });
+  controls.querySelectorAll(".nudge").forEach((b) => b.addEventListener("click", () => { inp.value = clamp((+inp.value || 0) + +b.dataset.d, 0, 999); sync(); }));
+  lb.addEventListener("click", () => { if (valid()) { inp.blur(); lock(Math.round(+inp.value)); } });
+  try { inp.focus({ preventScroll: true }); } catch (_) {}
+}
+
+/* ---------- center-mode input on the canvas ---------- */
+let dragging = false;
+function setMark(e) {
+  const r = cv.getBoundingClientRect();
+  cur.mark = [r1(clamp(((e.clientX - r.left) / r.width) * W, 0, W)), r1(clamp(((e.clientY - r.top) / r.height) * W, 0, W))];
+  markPlaced();
+}
+function markPlaced() { const lb = $("#lockBtn"); if (lb) lb.disabled = false; const h = $("#cHint"); if (h) h.textContent = "Drag to adjust, then lock it in."; draw(); }
+const centerActive = () => cur && cur.mode === "center" && cur.phase === "guess";
+cv.addEventListener("pointerdown", (e) => { if (!centerActive()) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} dragging = true; setMark(e); });
+cv.addEventListener("pointermove", (e) => { if (dragging && centerActive()) setMark(e); });
+cv.addEventListener("pointerup", () => { dragging = false; });
+cv.addEventListener("pointercancel", () => { dragging = false; });
+cv.addEventListener("keydown", (e) => {
+  if (!centerActive()) return;
+  const k = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
+  if (k) {
+    e.preventDefault();
+    const s = e.shiftKey ? 10 : 1, m = cur.mark || [200, 200];
+    cur.mark = [clamp(m[0] + k[0] * s, 0, W), clamp(m[1] + k[1] * s, 0, W)];
+    markPlaced();
+  } else if (e.key === "Enter" && cur.mark) { e.preventDefault(); lock(cur.mark.slice()); }
+});
+
+/* ---------- run flow ---------- */
+let run = null, cur = null, screen = "home", timers = [];
+function clearTimers() { timers.forEach(clearTimeout); timers = []; }
+function show(id) {
+  screen = id;
+  ["home", "play", "results"].forEach((s) => { $("#" + s).hidden = s !== id; });
+  window.scrollTo(0, 0);
+}
+function newRun(kind, mode) {
+  const daily = kind === "daily", key = todayKey(), bag = {};
+  const rng = daily ? mulberry32(hashStr("guesstimate-" + key)) : mulberry32((Math.random() * 4294967296) >>> 0);
+  const rounds = daily
+    ? dailyModes(key).map((m, i) => ({ mode: m, p: MODES[m].gen(rng, i, true, bag) }))
+    : [0, 1, 2, 3, 4].map((i) => ({ mode, p: MODES[mode].gen(rng, i, false, bag) }));
+  return { kind, mode: mode || null, key, day: dayNumber(), rounds, idx: 0, results: [] };
+}
+function startRun(kind, mode) { run = newRun(kind, mode); show("play"); startRound(); }
+
+function startRound() {
+  clearTimers();
+  const r = run.rounds[run.idx], m = MODES[r.mode];
+  cur = { mode: r.mode, p: r.p, phase: "guess", anim: 1 };
+  stageEl.classList.remove("touch", "pick");
+  cv.removeAttribute("tabindex");
+  const pr = m.prompt(r.p);
+  $("#roundLabel").textContent = `Round ${run.idx + 1} of ${run.rounds.length} · ${m.name}`;
+  $("#promptTitle").textContent = pr.title;
+  $("#promptSub").textContent = pr.sub;
+  $("#feedback").hidden = true;
+  controls.hidden = false;
+  controls.innerHTML = "";
+  m.setup(cur);
+  updateBar();
+  sizeCanvas();
+  draw();
+}
+function updateBar() {
+  $("#pips").innerHTML = run.rounds.map((_, k) => {
+    const res = run.results[k];
+    return `<span class="pip${!res && k === run.idx ? " now" : ""}"${res ? ` data-tier="${tier(res.pts)}"` : ""}></span>`;
+  }).join("");
+  $("#tally").textContent = run.results.reduce((a, r) => a + r.pts, 0);
+}
+function verdictWord(p) { return p >= 95 ? "Bullseye" : p >= 80 ? "Sharp" : p >= 60 ? "Close" : p >= 35 ? "Wobbly" : "Way off"; }
+function lock(guess) {
+  if (!cur || cur.phase !== "guess") return;
+  clearTimers();
+  const m = MODES[cur.mode];
+  cur.guess = guess; cur.phase = "reveal"; cur.anim = 1;
+  const pts = clamp(Math.round(m.score(cur.p, guess)), 0, 100);
+  const d = m.describe(cur.p, guess);
+  run.results.push({ mode: cur.mode, pts, pairs: d.pairs });
+  stageEl.classList.remove("touch", "pick");
+  controls.hidden = true;
+  const v = $("#verdict"); v.textContent = verdictWord(pts); v.dataset.tier = tier(pts);
+  $("#pts").textContent = "+" + pts;
+  $("#pairs").innerHTML = d.pairs.map(([l, val]) => `<div><dt>${l}</dt><dd>${val}</dd></div>`).join("");
+  $("#fact").textContent = d.fact;
+  $("#nextBtn").textContent = run.idx + 1 >= run.rounds.length ? "See your score" : "Next round";
+  $("#feedback").hidden = false;
+  updateBar();
+  draw();
+  try { $("#nextBtn").focus({ preventScroll: true }); } catch (_) {}
+}
+$("#nextBtn").addEventListener("click", () => {
+  run.idx++;
+  if (run.idx >= run.rounds.length) finishRun(); else startRound();
+});
+$("#quitBtn").addEventListener("click", () => { clearTimers(); cur = null; run = null; showHome(); });
+
+/* ---------- results ---------- */
+function overall(t) {
+  if (t >= 450) return ["Calibrated.", "Your eyes work like a measuring instrument."];
+  if (t >= 380) return ["Sharp eye.", "Most of your guesses landed close."];
+  if (t >= 300) return ["Solid estimator.", "Good instincts with a blind spot or two."];
+  if (t >= 200) return ["Ballpark.", "A few rounds fooled you. Practice the weakest one."];
+  return ["Way off today.", "Perception is tricky. A new five arrives tomorrow."];
+}
+function shareString(o) {
+  const sq = o.results.map((r) => (r.pts >= 80 ? "🟩" : r.pts >= 50 ? "🟨" : "🟥")).join("");
+  if (o.kind === "daily") return `Guesstimate No. ${o.day} · ${o.total}/500\n${sq}\n${o.results.map((r) => `${MODES[r.mode].name} ${r.pts}`).join(" · ")}`;
+  return `Guesstimate practice · ${MODES[o.mode].name} · ${o.total}/500\n${sq}\n${o.results.map((r) => r.pts).join(" · ")}`;
+}
+function finishRun() {
+  cur = null;
+  const total = run.results.reduce((a, r) => a + r.pts, 0);
+  const o = { kind: run.kind, mode: run.mode, key: run.key, day: run.day, results: run.results, total };
+  let newBest = false;
+  if (run.kind === "daily") {
+    if (!store.get("daily." + run.key, null)) {
+      store.set("daily." + run.key, o);
+      const st = store.get("stats", { played: 0, streak: 0, lastDay: 0, best: 0 });
+      st.played += 1;
+      st.streak = st.lastDay === run.day - 1 ? st.streak + 1 : st.lastDay === run.day ? st.streak : 1;
+      st.lastDay = run.day;
+      st.best = Math.max(st.best || 0, total);
+      store.set("stats", st);
+    }
+  } else {
+    const b = store.get("best." + run.mode, 0);
+    if (total > b) { store.set("best." + run.mode, total); newBest = b > 0; }
+  }
+  run = null;
+  renderResults(o, newBest);
+}
+function renderResults(o, newBest) {
+  show("results");
+  $("#resLabel").textContent = o.kind === "daily"
+    ? `Daily No. ${o.day} · ${prettyDate()}`
+    : `Practice · ${MODES[o.mode].name}${newBest ? " · New best" : ""}`;
+  const [h, s] = overall(o.total);
+  $("#resHead").textContent = h; $("#resSub").textContent = s;
+  $("#resRows").innerHTML = o.results.map((r) => `
+    <li>
+      <span style="color:var(--ink)">${ICONS[r.mode]}</span>
+      <div style="min-width:0">
+        <div class="res-name">${MODES[r.mode].name}</div>
+        <div class="res-detail">${r.pairs.map(([l, v]) => `${l} ${v}`).join(" · ")}</div>
+        <div class="bar"><i data-tier="${tier(r.pts)}" style="width:${Math.max(2, r.pts)}%"></i></div>
+      </div>
+      <span class="res-pts">${r.pts}</span>
+    </li>`).join("");
+  $("#shareText").textContent = shareString(o);
+  $("#copyNote").textContent = "";
+  countUp($("#resTotal"), o.total);
+  const again = $("#againBtn");
+  if (o.kind === "daily") {
+    const weak = o.results.slice().sort((a, b) => a.pts - b.pts)[0].mode;
+    again.textContent = `Practice your weakest: ${MODES[weak].name}`;
+    again.onclick = () => startRun("practice", weak);
+    $("#resNext").hidden = false;
+  } else {
+    again.textContent = `Another round of ${MODES[o.mode].name}`;
+    again.onclick = () => startRun("practice", o.mode);
+    $("#resNext").hidden = true;
+  }
+  tickClock();
+}
+function countUp(el, to) {
+  if (reduceMotion) { el.textContent = to; return; }
+  const t0 = performance.now(), ms = 900;
+  const step = (now) => { const a = Math.min(1, (now - t0) / ms); el.textContent = Math.round(to * (1 - (1 - a) ** 3)); if (a < 1) requestAnimationFrame(step); };
+  requestAnimationFrame(step);
+}
+$("#copyBtn").addEventListener("click", () => {
+  const pre = $("#shareText"), note = $("#copyNote"), t = pre.textContent;
+  const fallback = () => {
+    const rg = document.createRange(); rg.selectNodeContents(pre);
+    const sel = getSelection(); sel.removeAllRanges(); sel.addRange(rg);
+    let ok = false; try { ok = document.execCommand("copy"); } catch (_) {}
+    note.textContent = ok ? "Copied. Paste it anywhere." : "Text selected. Use your device's copy command.";
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(() => { note.textContent = "Copied. Paste it anywhere."; }, fallback);
+  else fallback();
+});
+$("#resHome").addEventListener("click", showHome);
+
+/* ---------- home ---------- */
+function showHome() {
+  show("home");
+  const key = todayKey(), day = dayNumber();
+  $("#dailyDate").textContent = `No. ${day} · ${prettyDate()}`;
+  $("#dailyChips").innerHTML = dailyModes(key).map((m) => `<li class="chip">${ICONS[m]}${MODES[m].name}</li>`).join("");
+  const done = store.get("daily." + key, null);
+  const btn = $("#playDaily");
+  if (done) {
+    $("#dailyPlayed").hidden = false;
+    $("#dpTotal").textContent = done.total;
+    $("#dpSquares").innerHTML = done.results.map((r) => `<i data-tier="${tier(r.pts)}" title="${MODES[r.mode].name} ${r.pts}"></i>`).join("");
+    btn.textContent = "See today's result";
+    btn.classList.remove("primary");
+    btn.onclick = () => renderResults(done, false);
+    $("#dailyFine").firstChild.nodeValue = "You've played today. New set in ";
+  } else {
+    $("#dailyPlayed").hidden = true;
+    btn.textContent = "Play today's five";
+    btn.classList.add("primary");
+    btn.onclick = () => startRun("daily");
+    $("#dailyFine").firstChild.nodeValue = "Same five for everyone today. New set in ";
+  }
+  $("#modeList").innerHTML = ORDER.map((m) => {
+    const best = store.get("best." + m, 0);
+    return `<li><button class="mode-btn" type="button" data-mode="${m}">
+      <span class="mode-ico">${ICONS[m]}</span>
+      <span style="min-width:0"><span class="mode-name">${MODES[m].name}</span><span class="mode-blurb">${MODES[m].blurb}</span></span>
+      <span class="mode-best">${best ? `best<b>${best}</b>` : "new"}</span>
+    </button></li>`;
+  }).join("");
+  $("#modeList").querySelectorAll(".mode-btn").forEach((b) => b.addEventListener("click", () => startRun("practice", b.dataset.mode)));
+  const st = store.get("stats", { played: 0, streak: 0, lastDay: 0, best: 0 });
+  $("#stPlayed").textContent = st.played;
+  $("#stStreak").textContent = st.lastDay >= day - 1 ? st.streak : 0;
+  $("#stBest").textContent = st.best ? st.best : "–";
+  tickClock();
+}
+let shownDay = todayKey();
+function tickClock() {
+  document.querySelectorAll(".nextIn").forEach((el) => { el.textContent = untilMidnight(); });
+  if (todayKey() !== shownDay) { shownDay = todayKey(); if (screen === "home") showHome(); }
+}
+setInterval(tickClock, 1000);
+
+/* ---------- theme + resize ---------- */
+readTokens();
+const retheme = () => { readTokens(); draw(); };
+matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", retheme);
+new MutationObserver(retheme).observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
+new ResizeObserver(() => { sizeCanvas(); draw(); }).observe(stageEl);
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(draw);
+
+/* ---------- boot ---------- */
+function boot(data) {
+  data = data || {};
+  if (data.run && data.screen === "play" && data.run.rounds) {
+    run = data.run;
+    run.idx = Math.max(run.idx, run.results.length);
+    show("play");
+    if (run.idx >= run.rounds.length) finishRun(); else startRound();
+    return;
+  }
+  showHome();
+}
+boot({});
+
+})();
+</script>
+</body>
+</html>

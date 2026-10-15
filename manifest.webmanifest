@@ -1,0 +1,12 @@
+{
+  "name": "Guesstimate",
+  "short_name": "Guesstimate",
+  "description": "A daily estimation game. How good is your eye?",
+  "start_url": ".",
+  "display": "standalone",
+  "background_color": "#ECF0F4",
+  "theme_color": "#152238",
+  "icons": [
+    { "src": "favicon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
