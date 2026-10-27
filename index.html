@@ -12,6 +12,7 @@
 <meta property="og:type" content="website">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
+<script src="board-config.js"></script>
 <style>
 :root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; }
@@ -41,6 +42,7 @@ img { max-width: 100%; }
   --good: #14845A;
   --mid: #B07A0A;
   --off: #7B879A;
+  --me-bg: #F6D9E2;
   --font-display: "Archivo", "Arial Black", system-ui, sans-serif;
   --font-body: "Figtree", system-ui, -apple-system, "Segoe UI", sans-serif;
   --font-mono: "Azeret Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
@@ -51,7 +53,7 @@ img { max-width: 100%; }
     --ink: #E4EAF2; --ink-2: #93A1B6; --rule: #283750; --glass: #1B2A45;
     --liquid: #FF5A82; --liquid-top: #FF9BB3; --liquid-deep: #FF7396;
     --btn-bg: #FF5A82; --btn-fg: #0D1524;
-    --good: #3FD08F; --mid: #F2C14A; --off: #8592A8;
+    --good: #3FD08F; --mid: #F2C14A; --off: #8592A8; --me-bg: #3B2036;
     color-scheme: dark;
   }
 }
@@ -60,7 +62,7 @@ img { max-width: 100%; }
   --ink: #E4EAF2; --ink-2: #93A1B6; --rule: #283750; --glass: #1B2A45;
   --liquid: #FF5A82; --liquid-top: #FF9BB3; --liquid-deep: #FF7396;
   --btn-bg: #FF5A82; --btn-fg: #0D1524;
-  --good: #3FD08F; --mid: #F2C14A; --off: #8592A8;
+  --good: #3FD08F; --mid: #F2C14A; --off: #8592A8; --me-bg: #3B2036;
   color-scheme: dark;
 }
 
@@ -323,6 +325,32 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
 }
 .copy-note { min-height: 1.2em; font-size: 13px; color: var(--ink-2); text-align: center; }
 
+/* Daily leaderboard */
+.board { display: flex; flex-direction: column; gap: 12px; }
+.board-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; border-top: 1.5px solid var(--ink); padding-top: 14px; }
+.board-head h3 { font: 850 22px/1.1 var(--font-display); font-stretch: 110%; }
+.board-rank { font-size: 16px; color: var(--ink-2); }
+.board-rank b { font: 900 36px/1 var(--font-display); font-stretch: 112%; color: var(--ink); margin-right: 2px; font-variant-numeric: tabular-nums; }
+.board-list { list-style: none; margin: 0; padding: 0; }
+.board-list li { display: grid; grid-template-columns: 4ch minmax(0, 1fr) auto; gap: 12px; align-items: baseline; padding: 10px 8px; border-bottom: 1px solid var(--rule); }
+.board-list .r { font: 600 14px/1 var(--font-mono); color: var(--ink-2); font-variant-numeric: tabular-nums; }
+.board-list .n { font-weight: 600; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.board-list .t { font: 800 16px/1 var(--font-mono); font-variant-numeric: tabular-nums; }
+.board-list li.me { background: var(--me-bg); border-radius: 6px; }
+.board-list li.me .n::after { content: " (you)"; font-weight: 500; color: var(--ink-2); }
+.board-list li.gap { display: block; padding: 2px 8px; text-align: center; color: var(--ink-2); border-bottom: 0; }
+.board-form { display: flex; flex-direction: column; gap: 8px; }
+.board-form label { font: 600 15px/1.3 var(--font-body); }
+.board-row { display: flex; gap: 8px; }
+.board-row input {
+  flex: 1; min-width: 0; min-height: 52px; padding: 0 14px;
+  border-radius: 12px; border: 1.5px solid var(--rule); background: var(--panel); color: var(--ink);
+  font: 600 16px/1 var(--font-body);
+}
+.board-row .btn { width: auto; flex: none; }
+.board-msg { font-size: 14px; color: var(--ink-2); }
+.board-msg[data-error="true"] { color: var(--liquid-deep); }
+
 @media (prefers-reduced-motion: reduce) {
   .wordmark, .bar i { animation: none; }
   .btn, .hold, .pip { transition: none; }
@@ -350,6 +378,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
         <div class="dp-score"><b id="dpTotal">0</b><span>/500</span></div>
         <div class="squares" id="dpSquares"></div>
       </div>
+      <p class="fine" id="dpRank" hidden></p>
       <button class="btn primary" id="playDaily" type="button">Play today's five</button>
       <p class="fine" id="dailyFine">Same five for everyone today. New set in <span class="nextIn">--:--:--</span>.</p>
     </div>
@@ -397,6 +426,24 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
     <div class="bigscore"><span id="resTotal">0</span><span class="of">/500</span></div>
     <div class="res-verdict"><h2 id="resHead"></h2><p id="resSub"></p></div>
     <ol class="res-rows" id="resRows"></ol>
+    <section class="board" id="board" hidden>
+      <div class="board-head">
+        <h3>Today's leaderboard</h3>
+        <button class="ghost" id="boardRefresh" type="button">Refresh</button>
+      </div>
+      <p class="board-rank" id="boardRank" hidden></p>
+      <form class="board-form" id="boardForm" hidden novalidate>
+        <label for="boardName">Your name on the board</label>
+        <div class="board-row">
+          <input id="boardName" type="text" maxlength="16" autocomplete="nickname" enterkeyhint="send" placeholder="e.g. Sam">
+          <button class="btn primary" id="boardPost" type="submit">Post score</button>
+        </div>
+        <p class="fine">Your name and score are public. Your first score of the day is the one that counts.</p>
+      </form>
+      <ol class="board-list" id="boardList" aria-label="Top scores today"></ol>
+      <p class="board-msg" id="boardMsg" aria-live="polite"></p>
+      <button class="ghost" id="boardRetry" type="button" hidden>Try again</button>
+    </section>
     <div class="share">
       <pre id="shareText"></pre>
       <button class="btn" id="copyBtn" type="button">Copy result</button>
@@ -1478,7 +1525,10 @@ function overall(t) {
 }
 function shareString(o) {
   const sq = o.results.map((r) => (r.pts >= 80 ? "🟩" : r.pts >= 50 ? "🟨" : "🟥")).join("");
-  if (o.kind === "daily") return `Guesstimate No. ${o.day} · ${o.total}/500\n${sq}\n${o.results.map((r) => `${MODES[r.mode].name} ${r.pts}`).join(" · ")}`;
+  if (o.kind === "daily") {
+    const b = store.get("board." + o.key, null), place = b && b.rank ? ` · #${b.rank} of ${b.players}` : "";
+    return `Guesstimate No. ${o.day} · ${o.total}/500${place}\n${sq}\n${o.results.map((r) => `${MODES[r.mode].name} ${r.pts}`).join(" · ")}`;
+  }
   return `Guesstimate practice · ${MODES[o.mode].name} · ${o.total}/500\n${sq}\n${o.results.map((r) => r.pts).join(" · ")}`;
 }
 function finishRun() {
@@ -1523,6 +1573,7 @@ function renderResults(o, newBest) {
   $("#shareText").textContent = shareString(o);
   $("#copyNote").textContent = "";
   countUp($("#resTotal"), o.total);
+  renderBoard(o);
   const again = $("#againBtn");
   if (o.kind === "daily") {
     const weak = o.results.slice().sort((a, b) => a.pts - b.pts)[0].mode;
@@ -1555,6 +1606,118 @@ $("#copyBtn").addEventListener("click", () => {
 });
 $("#resHome").addEventListener("click", showHome);
 
+/* ---------- daily leaderboard ----------
+   Scores go to a Supabase database set up with supabase/leaderboard.sql.
+   The public site reads its address and publishable key from board-config.js;
+   without them (or inside the Claude preview) the leaderboard stays hidden.
+   Each player's day is their own local date, so everyone who plays "No. 13"
+   on their own 27 October lands on the same board. */
+const BOARD = window.GUESSTIMATE_BOARD || {};
+const boardOn = () => !!(BOARD.url && BOARD.key);
+let PLAYER = null, NAME = null, boardFor = null, boardSeq = 0;
+function playerId() {
+  if (PLAYER) return PLAYER;
+  PLAYER = store.get("player", null);
+  if (!PLAYER) {
+    PLAYER = crypto.randomUUID ? crypto.randomUUID()
+      : "10000000-1000-4000-8000-100000000000".replace(/[018]/g, (c) => (c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (c / 4)))).toString(16));
+    store.set("player", PLAYER);
+  }
+  return PLAYER;
+}
+const playerName = () => (NAME != null ? NAME : (NAME = store.get("name", "")));
+async function boardCall(fn, body) {
+  const headers = { "Content-Type": "application/json", apikey: BOARD.key };
+  if (/^eyJ/.test(BOARD.key)) headers.Authorization = "Bearer " + BOARD.key;
+  const ctl = new AbortController(), t = setTimeout(() => ctl.abort(), 9000);
+  let r;
+  try { r = await fetch(BOARD.url.replace(/\/+$/, "") + "/rest/v1/rpc/" + fn, { method: "POST", headers, body: JSON.stringify(body), signal: ctl.signal }); }
+  catch (e) { throw new Error("Couldn't reach the leaderboard. Check your connection."); }
+  finally { clearTimeout(t); }
+  const data = await r.json().catch(() => null);
+  if (!r.ok) throw new Error((data && data.code === "P0001" && data.message) || (fn === "submit_score" ? "Your score wasn't saved. Try again in a minute." : "The leaderboard didn't load. Try again in a minute."));
+  return data;
+}
+function boardMsg(text, isError, retry) {
+  const m = $("#boardMsg");
+  m.textContent = text || ""; m.dataset.error = isError ? "true" : "false";
+  $("#boardRetry").hidden = !retry;
+  $("#boardRetry").onclick = retry || null;
+}
+function renderBoard(o) {
+  const el = $("#board");
+  boardFor = o;
+  if (!boardOn() || o.kind !== "daily") { el.hidden = true; return; }
+  el.hidden = false;
+  $("#boardRank").hidden = true;
+  $("#boardList").innerHTML = "";
+  $("#boardName").value = playerName();
+  const posted = store.get("board." + o.key, null);
+  if (!posted && playerName()) loadBoard(o, playerName());
+  else loadBoard(o, null);
+}
+async function loadBoard(o, postAs) {
+  const seq = ++boardSeq;
+  $("#boardForm").hidden = true;
+  boardMsg(postAs ? "Posting your score…" : "Loading today's board…");
+  try {
+    const data = postAs
+      ? await boardCall("submit_score", { p_day: o.key, p_player: playerId(), p_name: postAs, p_rounds: o.results.map((r) => r.pts) })
+      : await boardCall("day_board", { p_day: o.key, p_player: playerId() });
+    if (seq !== boardSeq || boardFor !== o) return;
+    drawBoard(o, data);
+  } catch (err) {
+    if (seq !== boardSeq || boardFor !== o) return;
+    boardMsg(err.message, true, () => loadBoard(o, postAs));
+    if (postAs) $("#boardForm").hidden = false;
+  }
+}
+function drawBoard(o, data) {
+  const me = data && data.me, players = (data && data.players) || 0;
+  const list = $("#boardList");
+  list.innerHTML = "";
+  const row = (r) => {
+    const li = document.createElement("li");
+    if (r.me) li.className = "me";
+    [["r", "#" + r.rank], ["n", r.name], ["t", String(r.total)]].forEach(([cls, txt]) => {
+      const s = document.createElement("span"); s.className = cls; s.textContent = txt; li.appendChild(s);
+    });
+    return li;
+  };
+  const top = (data && data.top) || [];
+  top.forEach((r) => list.appendChild(row(r)));
+  if (me && !top.some((r) => r.me)) {
+    const gap = document.createElement("li"); gap.className = "gap"; gap.textContent = "…"; list.appendChild(gap);
+    list.appendChild(row(Object.assign({ me: true }, me)));
+  }
+  const rank = $("#boardRank");
+  if (me) {
+    store.set("board." + o.key, { rank: me.rank, players });
+    const pct = Math.max(1, Math.ceil((me.rank / players) * 100));
+    rank.innerHTML = "";
+    const b = document.createElement("b"); b.textContent = "#" + me.rank; rank.appendChild(b);
+    rank.appendChild(document.createTextNode(me.rank === 1 ? ` of ${players} so far. Top score today.` : ` of ${players} so far, top ${pct}%.`));
+    rank.hidden = false;
+    $("#boardForm").hidden = true;
+    $("#shareText").textContent = shareString(o);
+    boardMsg(`Everyone gets puzzle No. ${o.day} on their own ${prettyDate()}. Ranks keep moving until midnight in the last time zone.`);
+  } else {
+    rank.hidden = true;
+    $("#boardForm").hidden = false;
+    boardMsg(players ? "" : "No scores yet today. Be the first on the board.");
+  }
+}
+$("#boardForm").addEventListener("submit", (e) => {
+  e.preventDefault();
+  if (!boardFor) return;
+  const v = $("#boardName").value.trim().replace(/\s+/g, " ");
+  if (v.length < 2 || v.length > 16) { boardMsg("Use a name of 2 to 16 characters.", true); $("#boardName").focus(); return; }
+  NAME = v; store.set("name", v);
+  try { $("#boardName").blur(); } catch (_) {}
+  loadBoard(boardFor, v);
+});
+$("#boardRefresh").addEventListener("click", () => { if (boardFor) loadBoard(boardFor, null); });
+
 /* ---------- home ---------- */
 function showHome() {
   show("home");
@@ -1567,12 +1730,16 @@ function showHome() {
     $("#dailyPlayed").hidden = false;
     $("#dpTotal").textContent = done.total;
     $("#dpSquares").innerHTML = done.results.map((r) => `<i data-tier="${tier(r.pts)}" title="${MODES[r.mode].name} ${r.pts}"></i>`).join("");
+    const placed = boardOn() ? store.get("board." + key, null) : null;
+    $("#dpRank").hidden = !placed;
+    if (placed) $("#dpRank").textContent = `#${placed.rank} of ${placed.players} on today's leaderboard so far.`;
     btn.textContent = "See today's result";
     btn.classList.remove("primary");
     btn.onclick = () => renderResults(done, false);
     $("#dailyFine").firstChild.nodeValue = "You've played today. New set in ";
   } else {
     $("#dailyPlayed").hidden = true;
+    $("#dpRank").hidden = true;
     btn.textContent = "Play today's five";
     btn.classList.add("primary");
     btn.onclick = () => startRun("daily");

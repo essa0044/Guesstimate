@@ -30,7 +30,29 @@ Guesstimate No. 1 · 412/500
 Pour 92 · Flash 71 · Angle 88 · Center 95 · Hold 66
 ```
 
+The day follows each player's own clock. Puzzle No. 13 is everyone's 27 October, so a player in New York gets it hours after a player in Shanghai, and each new set starts at local midnight.
+
 There's also a practice mode for each game (five rounds that get harder), plus a streak, games played and personal bests. These are saved in the player's own browser.
+
+## Daily leaderboard
+
+After the daily five, players can post their score under a name and see their rank against everyone who played the same puzzle, wherever they live. The leaderboard runs on a free [Supabase](https://supabase.com) database. Until it's connected, the game works as before and the leaderboard stays hidden.
+
+Set it up (about 10 minutes):
+
+1. Create a free Supabase account and a new project. Pick the region closest to most of your players, for example Frankfurt.
+2. In the project, open **SQL Editor**, click **New query**, paste everything from [`supabase/leaderboard.sql`](supabase/leaderboard.sql) and click **Run**.
+3. Open the project's **Connect** dialog, or **Settings → API Keys**, and copy the **Project URL** and the **publishable key** (it starts with `sb_publishable_`). Never use a secret key here.
+4. Edit [`board-config.js`](board-config.js) in this repository, paste both values and commit. The leaderboard appears on the results screen of the daily five.
+
+How it works:
+
+- Players choose a name the first time they post. Their first score of the day is the one that counts.
+- Scores are only accepted for a date that is "today" somewhere on Earth, so each day's board stays open until midnight in the last time zone.
+- Browsers can't read or change the scores table directly. They go through two database functions that check every score.
+- To remove a name, delete its row in **Table Editor → daily_scores**.
+
+Limits: Supabase's free plan includes a 500 MB database and pauses a project after a week without activity, which a daily game won't hit. Scores are checked for shape (five rounds of 0 to 100 points) but come from the player's browser, so a determined cheater could post a fake one. Re-scoring each guess on the server is the fix if that becomes a problem.
 
 ## Run it locally
 
@@ -50,15 +72,17 @@ python3 -m http.server 8000
 ## Project layout
 
 ```
-index.html            the whole game: markup, styles and script
-favicon.svg           browser tab and home-screen icon
-manifest.webmanifest  lets phones add the game to the home screen
+index.html               the whole game: markup, styles and script
+board-config.js          leaderboard address and publishable key (empty until set up)
+supabase/leaderboard.sql database setup for the daily leaderboard
+favicon.svg              browser tab and home-screen icon
+manifest.webmanifest     lets phones add the game to the home screen
 ```
 
 ## Roadmap
 
 - **App version:** the game is already built phone-first, so it can be wrapped as a native app for the App Store and Google Play with a tool such as [Capacitor](https://capacitorjs.com/).
-- **Global leaderboard:** needs a small backend to store daily scores.
+- **Cheat-proof leaderboard:** re-score each player's guesses on the server so fake scores can't be posted.
 - **Instagram:** reveal posts ("this glass looks half full, it's actually 19%") and color challenges where followers comment their pick before the answer.
 
 ## License
