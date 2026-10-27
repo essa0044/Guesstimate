@@ -10,19 +10,39 @@
 <meta property="og:title" content="Guesstimate">
 <meta property="og:description" content="How good is your eye? Five quick estimation games, new every day.">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://essa0044.github.io/Guesstimate/">
+<meta property="og:image" content="https://essa0044.github.io/Guesstimate/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Guesstimate: How good is your eye? A glass with a 38% guess.">
+<meta name="twitter:card" content="summary_large_image">
+<link rel="canonical" href="https://essa0044.github.io/Guesstimate/">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
 <link rel="manifest" href="manifest.webmanifest">
 <script src="board-config.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" integrity="sha384-BWcjm9OdFth9TbhCxZPdm+gAOUMAzQy9nmTs12ioXdCcbVnJaPMn+fMUoQCLt60R" crossorigin="anonymous" async id="sbjs"></script>
+<script>
+// Cloudflare Web Analytics: page views only, no cookies. Turned on by the token in board-config.js.
+(function () {
+  var t = (window.GUESSTIMATE_BOARD || {}).analytics;
+  if (!t) return;
+  var s = document.createElement("script");
+  s.defer = true;
+  s.src = "https://static.cloudflareinsights.com/beacon.min.js";
+  s.setAttribute("data-cf-beacon", JSON.stringify({ token: t }));
+  document.head.appendChild(s);
+})();
+</script>
+<script src="vendor/supabase.js" async id="sbjs"></script>
+<link rel="preload" href="fonts/archivo-latin-standard-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="preload" href="fonts/figtree-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
+<link rel="stylesheet" href="fonts/fonts.css">
 <style>
 :root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; }
 img { max-width: 100%; }
 [hidden] { display: none !important; }
 </style>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,100..900&family=Azeret+Mono:wght@400..800&family=Figtree:wght@400..700&display=swap">
 <style>
 /* Layout: one phone-width column. A square graph-paper "stage" is the instrument; controls sit beneath it like a lab readout. */
 :root {
@@ -365,6 +385,12 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
 .welcome .btn-row { flex-wrap: wrap; }
 .welcome .ghost { align-self: flex-start; }
 .acct-pane { display: flex; flex-direction: column; gap: 16px; }
+.ghost.danger { color: var(--liquid-deep); align-self: flex-start; }
+.confirm { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1.5px solid var(--liquid-deep); border-radius: 6px; }
+.confirm p { font-size: 15px; line-height: 1.45; }
+.site-links { display: flex; flex-wrap: wrap; gap: 4px 16px; padding-top: 8px; border-top: 1.5px solid var(--rule); font-size: 13px; }
+.site-links a, .acct-note a { color: var(--ink-2); }
+.acct-note { font-size: 13px; color: var(--ink-2); line-height: 1.45; }
 .acct-title { font: 850 clamp(26px, 7vw, 32px)/1.1 var(--font-display); font-stretch: 108%; overflow-wrap: anywhere; }
 .acct-tabs { display: flex; gap: 4px; padding: 4px; border: 1.5px solid var(--rule); border-radius: 999px; background: var(--panel); }
 .acct-tabs button {
@@ -437,6 +463,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
       <div><dt>Streak</dt><dd id="stStreak">0</dd></div>
       <div><dt>Best day</dt><dd id="stBest">–</dd></div>
     </dl>
+    <nav class="site-links" aria-label="Site"><a href="about.html">About &amp; how to play</a><a href="privacy.html">Privacy</a><a href="impressum.html">Impressum</a></nav>
   </section>
 
   <!-- PLAY -->
@@ -532,6 +559,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
         <button class="btn" id="googleBtn" type="button">Continue with Google</button>
       </div>
       <p class="board-msg" id="authMsg" aria-live="polite"></p>
+      <p class="acct-note">Your name and daily scores appear on the public leaderboard. See the <a href="privacy.html">privacy policy</a>.</p>
       <button class="ghost" id="guestBtn" type="button">Play as a guest instead</button>
     </div>
 
@@ -553,6 +581,15 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
       </form>
       <p class="board-msg" id="meMsg" aria-live="polite"></p>
       <button class="btn" id="signOutBtn" type="button">Sign out</button>
+      <button class="ghost danger" id="deleteBtn" type="button" aria-expanded="false" aria-controls="deleteConfirm">Delete account</button>
+      <div class="confirm" id="deleteConfirm" hidden>
+        <p><b>Delete your account?</b> Your name, email and every score you've posted are removed for good. This can't be undone.</p>
+        <div class="btn-row">
+          <button class="btn primary" id="deleteYes" type="button">Yes, delete</button>
+          <button class="btn" id="deleteNo" type="button">Keep it</button>
+        </div>
+        <p class="board-msg" id="deleteMsg" aria-live="polite"></p>
+      </div>
     </div>
 
     <div class="acct-pane" id="acctReset" hidden>
@@ -576,9 +613,14 @@ const $ = (s) => document.querySelector(s);
 const W = 400;
 const ORDER = ["pour", "flash", "angle", "center", "hold", "shade", "glimpse", "bounce", "ballpark"];
 const ROTATING = ["angle", "center", "hold", "shade", "glimpse", "bounce", "ballpark"];
+// New games join the daily rotation from a start date ("YYYY-MM-DD"), so adding one never
+// changes today's puzzles or any earlier day. Add the game to ORDER and MODES, then list it here:
+//   const LATER = { newgame: "2026-12-01" };
+const LATER = {};
 function dailyModes(key) {
   const r = mulberry32(hashStr("modes-" + key));
-  const extra = shuffle(ROTATING, r).slice(0, 3);
+  const pool = ROTATING.concat(Object.keys(LATER).filter((m) => key >= LATER[m]));
+  const extra = shuffle(pool, r).slice(0, 3);
   return ORDER.filter((m) => m === "pour" || m === "flash" || extra.includes(m));
 }
 const MONO = "'Azeret Mono', ui-monospace, Menlo, monospace";
@@ -2015,6 +2057,7 @@ function renderAuthForm() {
   $("#googleWrap").hidden = !GOOGLE;
 }
 function renderMe() {
+  toggleDelete(false);
   $("#meName").textContent = ME.username || "Choose your name";
   $("#meEmail").textContent = ME.email ? "Signed in as " + ME.email : "";
   $("#meP").textContent = ME.played || 0;
@@ -2084,6 +2127,35 @@ $("#signOutBtn").addEventListener("click", async () => {
   const c = await sb();
   if (c) { try { await c.auth.signOut({ scope: "local" }); } catch (_) {} }
   ME = null;
+  renderAccountBits();
+  showHome();
+});
+function toggleDelete(open) {
+  $("#deleteConfirm").hidden = !open;
+  $("#deleteBtn").setAttribute("aria-expanded", String(open));
+  say("#deleteMsg", "");
+  if (open) $("#deleteNo").focus();
+}
+$("#deleteBtn").addEventListener("click", () => toggleDelete($("#deleteConfirm").hidden));
+$("#deleteNo").addEventListener("click", () => { toggleDelete(false); $("#deleteBtn").focus(); });
+$("#deleteYes").addEventListener("click", async () => {
+  const c = await sb();
+  if (!c || !ME) return;
+  const btn = $("#deleteYes");
+  btn.disabled = true;
+  say("#deleteMsg", "Deleting your account…");
+  try {
+    await rpc("delete_my_account", {});
+  } catch (err) {
+    btn.disabled = false;
+    return say("#deleteMsg", err.code === "PGRST202" ? "Deleting isn't switched on yet. Please email us and we'll delete it for you." : err.message, true);
+  }
+  try { await c.auth.signOut({ scope: "local" }); } catch (_) {}
+  btn.disabled = false;
+  toggleDelete(false);
+  ME = null;
+  // This device's scores went with the account, so start fresh as a guest.
+  PLAYER = null; store.set("player", null); store.set("guestChosen", false);
   renderAccountBits();
   showHome();
 });

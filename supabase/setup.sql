@@ -273,6 +273,25 @@ begin
 end;
 $$;
 
+-- Delete the signed-in account: its scores, its profile and the login itself.
+create or replace function public.delete_my_account()
+returns void
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then
+    raise exception 'Sign in first.' using errcode = 'P0001';
+  end if;
+  delete from public.daily_scores where player_id = v_uid;
+  delete from public.profiles where id = v_uid;
+  delete from auth.users where id = v_uid;
+end;
+$$;
+
 -- ---------- who may call what ----------
 
 revoke all on function public.handle_new_user() from public, anon, authenticated;
@@ -282,14 +301,18 @@ revoke all on function public.name_taken(text) from public;
 revoke all on function public.my_profile(date) from public;
 revoke all on function public.set_username(text) from public;
 revoke all on function public.claim_guest(uuid) from public;
+revoke all on function public.delete_my_account() from public;
 grant execute on function public.day_board(date, uuid, int) to anon, authenticated;
 grant execute on function public.submit_score(date, uuid, text, int[], jsonb) to anon, authenticated;
 grant execute on function public.name_taken(text) to anon, authenticated;
 grant execute on function public.my_profile(date) to authenticated;
 grant execute on function public.set_username(text) to authenticated;
 grant execute on function public.claim_guest(uuid) to authenticated;
+grant execute on function public.delete_my_account() to authenticated;
 
 -- Moderating: to remove a name from a board, open Table Editor > daily_scores and delete the
 -- row, or run for example:
 --   delete from public.daily_scores where day = '2026-10-27' and name = 'Bad name';
 -- To rename an account, edit its row in Table Editor > profiles.
+-- To delete an account for someone who asks by email, delete it under Authentication > Users,
+-- then run: delete from public.daily_scores where player_id = '<their user id>';

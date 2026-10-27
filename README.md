@@ -41,6 +41,7 @@ On their first visit, players choose: **create an account** or **play as a guest
 - **Guests** play straight away. Their streak and bests are saved in their own browser, and they type a name when they post to the leaderboard.
 - **Accounts** sign up with a name, email and password (or Google, if you turn it on). Their name is reserved on the leaderboard, and their streak, games played, best day and today's result follow them to every device.
 - A guest who later makes an account, or signs in, keeps the scores they posted as a guest on that device, so the streak carries over.
+- Players can delete their account themselves from the account screen. That removes the login, the name and every score.
 
 ## Daily leaderboard
 
@@ -49,14 +50,14 @@ After the daily five, players see their rank against everyone who played the sam
 ### Set up Supabase (about 10 minutes)
 
 1. Create a free Supabase account and a new project. Pick the region closest to most of your players, for example Frankfurt.
-2. In the project, open **SQL Editor**, click **New query**, paste everything from [`supabase/setup.sql`](supabase/setup.sql) and click **Run**. It's safe to run again, and it upgrades a project that ran the older leaderboard-only script.
+2. In the project, open **SQL Editor**, click **New query**, paste everything from [`supabase/setup.sql`](supabase/setup.sql) and click **Run**. It's safe to run again, and it upgrades a project that ran the older leaderboard-only script. Run it again whenever this file changes.
 3. Open the project's **Connect** dialog, or **Settings → API Keys**, and copy the **Project URL** and the **publishable key** (it starts with `sb_publishable_`). Never use a secret key here.
 4. Edit [`board-config.js`](board-config.js), paste both values and commit.
 5. Open **Authentication → URL Configuration**. Set **Site URL** to the game's address (`https://essa0044.github.io/Guesstimate/`, or your own domain once you have one) and add the same address under **Redirect URLs**. Confirmation and password-reset emails link there.
 6. Open **Authentication → Sign In / Providers → Email** and choose how sign-up works:
    - **Confirm email off:** players are signed in right after creating an account. Simplest to start with.
    - **Confirm email on:** players must click a link in an email first. Supabase's built-in email sends only a few emails an hour, so connect your own email service under **Authentication → Emails → SMTP Settings** before you launch. [Resend](https://resend.com) and similar services have free plans.
-7. Optional: to offer **Continue with Google**, enable Google under **Sign In / Providers** and follow Supabase's steps to create a Google OAuth client. The button appears in the game by itself once Google is on.
+7. Optional: to offer **Continue with Google**, enable Google under **Sign In / Providers** and follow Supabase's steps to create a Google OAuth client. The button appears in the game by itself once Google is on. Add a Google sign-in section to `privacy.html` when you do.
 
 ### How it works
 
@@ -67,6 +68,38 @@ After the daily five, players see their rank against everyone who played the sam
 - To remove a name, delete its row in **Table Editor → daily_scores**. To rename an account, edit its row in **Table Editor → profiles**. To delete an account, use **Authentication → Users**; its profile goes with it.
 
 Limits: Supabase's free plan includes a 500 MB database and 50,000 monthly active users, and pauses a project after a week without activity, which a daily game won't hit. Scores are checked for shape (five rounds of 0 to 100 points) but come from the player's browser, so a determined cheater could post a fake one. Re-scoring each guess on the server is the fix if that becomes a problem.
+
+## Visitor numbers
+
+Two places show how the game is doing:
+
+- **Cloudflare Web Analytics** counts visits, where visitors come from and which devices they use, without cookies. Create a free Cloudflare account, open **Analytics & Logs → Web Analytics**, click **Add a site**, enter the game's address and copy the token from the snippet it shows (the value after `"token":`). Paste it into `analytics` in [`board-config.js`](board-config.js) and commit.
+- **Supabase** knows how many people actually played. Paste the queries from [`supabase/stats.sql`](supabase/stats.sql) into the SQL Editor to see players per day, new versus returning players, how many come back the next day and within a week, and how many accounts there are.
+
+## Legal pages (Germany)
+
+[`impressum.html`](impressum.html) and [`privacy.html`](privacy.html) are templates for a site run from Germany. Replace every yellow-highlighted `<span class="todo">[...]</span>` with your own details before you promote the game:
+
+- `impressum.html`: your full name, street address, postcode and city, email, and a phone number (or another way to reach you quickly).
+- `privacy.html`: your full name, your email, and the region of your Supabase project (shown in the project's settings in Supabase).
+
+Update `privacy.html` before adding ads, Google sign-in or any other outside service, and add a consent banner when ads go live. These pages are a starting point, not legal advice; a generator such as e-recht24 or a lawyer can check them.
+
+The game's fonts and its Supabase library are served from this repository (`fonts/`, `vendor/`), so visitors' browsers don't contact Google Fonts or other outside servers.
+
+## Adding a game
+
+Each game is one entry in `MODES` in `index.html`, with its name in `ORDER` for the practice list. To put a new game into the daily rotation without changing today's or any earlier puzzle, give it a start date in `LATER`:
+
+```js
+const LATER = { newgame: "2026-12-01" };
+```
+
+From that date the daily five draws its three rotating slots from the larger pool. Days before it keep exactly the puzzles they had.
+
+## Custom domain
+
+After pointing a domain at GitHub Pages, replace `https://essa0044.github.io/Guesstimate/` in `index.html` (three places, for link previews) and in Supabase's **Site URL** and **Redirect URLs**. Players' guest streaks are saved per address, so they don't carry over to a new domain; account streaks do.
 
 ## Run it locally
 
@@ -87,9 +120,17 @@ python3 -m http.server 8000
 
 ```
 index.html               the whole game: markup, styles and script
-board-config.js          Supabase address and publishable key for the leaderboard and accounts
+board-config.js          Supabase address, publishable key and analytics token
+about.html               how to play, scoring and FAQ
+privacy.html             privacy policy (Datenschutzerklärung) template
+impressum.html           legal notice template
+pages.css                shared styles for the three pages above
 supabase/setup.sql       database setup for the leaderboard and accounts
-favicon.svg              browser tab and home-screen icon
+supabase/stats.sql       player numbers and retention queries
+fonts/                   self-hosted fonts (SIL Open Font License)
+vendor/supabase.js       Supabase client library (MIT License)
+og-image.png             preview image for shared links
+favicon.svg, icon-*.png  browser tab and home-screen icons
 manifest.webmanifest     lets phones add the game to the home screen
 ```
 
