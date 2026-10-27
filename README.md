@@ -12,12 +12,17 @@
 | **Center** | Tap the exact center of a circle or arc, or the midpoint of a line. |
 | **Hold** | Hold a button for exactly the target time, with no clock to watch. |
 | **Shade** | Memorize a color, then pick which of two shades is closer. Five picks, each harder. |
+| **Glimpse** | Keep your eyes on the center while a star flashes for a split second somewhere else. Tap where it was. |
+| **Bounce** | Watch a ball fly, then predict where it lands after it bounces out of sight in the fog. |
+| **Ballpark** | Estimate a product, a sum or a percentage before 7 seconds run out. |
+
+Glimpse, Bounce and Ballpark are inspired by Lumosity's Eagle Eye, Pinball Recall and Raindrops, but like every Guesstimate game they score how close you get, not just right or wrong.
 
 Every round scores 0 to 100, so a full day tops out at 500.
 
 ## Today's five
 
-Pour and Flash appear every day. The other three slots rotate among Angle, Center, Hold and Shade. Each day's rounds come from a seed based on the date, so everyone gets the same puzzles. After playing you can copy an emoji result to share:
+Pour and Flash appear every day. The other three slots rotate among Angle, Center, Hold, Shade, Glimpse, Bounce and Ballpark. Each day's rounds come from a seed based on the date, so everyone gets the same puzzles. After playing you can copy an emoji result to share:
 
 ```
 Guesstimate No. 1 · 412/500

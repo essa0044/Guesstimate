@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Guesstimate</title>
-<meta name="description" content="A daily estimation game. Judge how full a glass is, count flashed dots, read angles, find centers, feel time and match shades.">
+<meta name="description" content="A daily estimation game. Judge how full a glass is, count flashed dots, read angles, find centers, feel time, match shades, catch a flash, predict a bounce and ballpark the maths.">
 <meta name="theme-color" content="#ECF0F4" media="(prefers-color-scheme: light)">
 <meta name="theme-color" content="#0D1524" media="(prefers-color-scheme: dark)">
 <meta property="og:title" content="Guesstimate">
@@ -218,6 +218,20 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
 .pickmsg { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; font: 850 24px/1.1 var(--font-display); font-stretch: 112%; color: var(--off); }
 .pickmsg[data-ok="true"] { color: var(--good); }
 .pickmsg span { font: 500 12px/1 var(--font-mono); letter-spacing: 0.1em; text-transform: uppercase; color: var(--ink-2); }
+.stage.short { width: min(100%, 440px); aspect-ratio: 2 / 1; }
+.answer { display: flex; align-items: baseline; justify-content: center; gap: 10px; min-height: 48px; }
+.answer span { font: 600 24px/1 var(--font-mono); color: var(--ink-2); }
+.answer output { min-width: 3ch; text-align: center; font: 800 40px/1 var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
+.answer output:empty::before { content: "?"; color: var(--rule); }
+.keypad { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.key {
+  min-height: 50px; border-radius: 12px;
+  border: 1.5px solid var(--rule); background: var(--panel); color: var(--ink);
+  font: 700 22px/1 var(--font-mono); cursor: pointer;
+  touch-action: manipulation; user-select: none; -webkit-user-select: none;
+}
+.key:active { transform: translateY(1px); }
+.key.ok { background: var(--btn-bg); border-color: var(--btn-bg); color: var(--btn-fg); font: 750 16px/1 var(--font-display); font-stretch: 110%; }
 
 .controls, .feedback { display: flex; flex-direction: column; gap: 14px; }
 .readrow { display: flex; align-items: center; justify-content: center; gap: 18px; }
@@ -321,10 +335,10 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
   <section id="home" class="screen">
     <div class="brandbar">
       <span class="eyebrow">Estimation games</span>
-      <span class="eyebrow">6 games · 2 min</span>
+      <span class="eyebrow">9 games · 2 min</span>
     </div>
     <h1 class="wordmark" aria-label="Guesstimate">guesstimate</h1>
-    <p class="tagline">Quick tests of your eye: volume, count, angle, center, time and color.</p>
+    <p class="tagline">Quick tests of how well you judge volume, numbers, space, time and color.</p>
 
     <div class="daily">
       <div class="daily-head">
@@ -401,10 +415,11 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
 "use strict";
 const $ = (s) => document.querySelector(s);
 const W = 400;
-const ORDER = ["pour", "flash", "angle", "center", "hold", "shade"];
+const ORDER = ["pour", "flash", "angle", "center", "hold", "shade", "glimpse", "bounce", "ballpark"];
+const ROTATING = ["angle", "center", "hold", "shade", "glimpse", "bounce", "ballpark"];
 function dailyModes(key) {
   const r = mulberry32(hashStr("modes-" + key));
-  const extra = shuffle(["angle", "center", "hold", "shade"], r).slice(0, 3);
+  const extra = shuffle(ROTATING, r).slice(0, 3);
   return ORDER.filter((m) => m === "pour" || m === "flash" || extra.includes(m));
 }
 const MONO = "'Azeret Mono', ui-monospace, Menlo, monospace";
@@ -437,7 +452,10 @@ const ICONS = {
   angle: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 19h16M4 19 15 6"/><path d="M10 19A6 6 0 0 0 7.87 14.42" style="stroke:var(--liquid)"/></svg>',
   center: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="8.5"/><path d="M12 9v6M9 12h6" style="stroke:var(--liquid)"/></svg>',
   hold: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="13.5" r="7.5"/><path d="M12 13.5V9.5" style="stroke:var(--liquid)"/><path d="M10 3h4M12 3v3M18.2 7.3l1.3-1.3"/></svg>',
-  shade: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="8" rx="1.5" style="fill:var(--liquid)" stroke="none"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.2" style="fill:var(--liquid-top)"/><rect x="13.5" y="14.5" width="7" height="6" rx="1.2"/></svg>'
+  shade: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="8" rx="1.5" style="fill:var(--liquid)" stroke="none"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.2" style="fill:var(--liquid-top)"/><rect x="13.5" y="14.5" width="7" height="6" rx="1.2"/></svg>',
+  glimpse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><path d="M16.6 5.4l.8 1.8 1.8.8-1.8.8-.8 1.8-.8-1.8-1.8-.8 1.8-.8z" style="fill:var(--liquid)" stroke="none"/></svg>',
+  bounce: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v17h16V3"/><path d="M7.5 5l10 6.5-4.5 4.2" stroke-dasharray="2 2.6"/><circle cx="11.6" cy="17.2" r="2" style="fill:var(--liquid)" stroke="none"/></svg>',
+  ballpark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9.5c2.3-2.2 4.6-2.2 7 0s4.7 2.2 7 0"/><path d="M5 15c2.3-2.2 4.6-2.2 7 0s4.7 2.2 7 0" style="stroke:var(--liquid)"/></svg>'
 };
 
 /* ---------- canvas ---------- */
@@ -456,7 +474,7 @@ function sizeCanvas() {
   if (!r.width) return;
   dpr = Math.min(3, window.devicePixelRatio || 1);
   cv.width = Math.round(r.width * dpr);
-  cv.height = Math.round(r.width * dpr);
+  cv.height = Math.round(r.height * dpr);
   scale = r.width / W;
 }
 function text(str, x, y, o = {}) {
@@ -777,11 +795,9 @@ const MODES = {
     },
     setup(c) {
       c.mark = null;
-      stageEl.classList.add("touch");
-      cv.tabIndex = 0;
-      controls.innerHTML = `<p class="hint" id="cHint">Tap the grid to place your mark.</p><button class="btn primary" id="lockBtn" type="button" disabled>Lock in</button>`;
-      $("#lockBtn").addEventListener("click", () => { if (c.mark) lock(c.mark.slice()); });
+      tapControls(c, "Tap the grid to place your mark.");
     },
+    tap: () => true,
     score(p, g) { const [tx, ty] = centerTarget(p); return 100 - 4 * Math.hypot(g[0] - tx, g[1] - ty); },
     describe(p, g) {
       const [tx, ty] = centerTarget(p), dx = g[0] - tx, dy = g[1] - ty, e = Math.hypot(dx, dy);
@@ -1048,6 +1064,285 @@ MODES.shade = {
   }
 };
 
+/* ---------- shared drawing helpers for the newer games ---------- */
+function fitText(str, x, y, maxW, size, o = {}) {
+  const face = o.font === "display" ? DISPLAY : MONO;
+  let s = size;
+  ctx.font = `${o.weight || 600} ${s}px ${face}`;
+  while (s > 10 && ctx.measureText(str).width > maxW) { s -= 2; ctx.font = `${o.weight || 600} ${s}px ${face}`; }
+  text(str, x, y, Object.assign({}, o, { size: s }));
+}
+function drawMark(m) {
+  const [mx, my] = m;
+  ctx.strokeStyle = C.liquid; ctx.lineWidth = 1; ctx.globalAlpha = 0.65;
+  ctx.beginPath(); ctx.moveTo(mx, 0); ctx.lineTo(mx, W); ctx.moveTo(0, my); ctx.lineTo(W, my); ctx.stroke();
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = C["liquid-deep"]; ctx.lineWidth = 2.5;
+  ctx.beginPath(); ctx.arc(mx, my, 10, 0, Math.PI * 2); ctx.stroke();
+  ctx.fillStyle = C["liquid-deep"]; ctx.beginPath(); ctx.arc(mx, my, 2.6, 0, Math.PI * 2); ctx.fill();
+}
+function offTag(tx, ty, gx, gy, label) {
+  let dy = gy < ty ? 36 : -36;
+  if (ty + dy < 24) dy = 36; else if (ty + dy > W - 24) dy = -36;
+  tag(label, tx, ty + dy, { size: 14 });
+}
+
+/* ---------- Glimpse: after Lumosity's Eagle Eye ---------- */
+function starPath(x, y, R, r) {
+  ctx.beginPath();
+  for (let k = 0; k < 10; k++) {
+    const a = -Math.PI / 2 + (k * Math.PI) / 5, d = k % 2 ? r : R;
+    if (k) ctx.lineTo(x + Math.cos(a) * d, y + Math.sin(a) * d); else ctx.moveTo(x + Math.cos(a) * d, y + Math.sin(a) * d);
+  }
+  ctx.closePath();
+}
+MODES.glimpse = {
+  name: "Glimpse", blurb: "A star flashes. Tap where it was.",
+  gen(rng, i, daily) {
+    const dur = daily ? 160 : [260, 210, 170, 140, 120][i];
+    const ang = rng() * Math.PI * 2, rad = 85 + rng() * 90;
+    return { dur, x: r1(clamp(200 + Math.cos(ang) * rad, 28, 372)), y: r1(clamp(200 + Math.sin(ang) * rad, 28, 372)), delay: Math.round(700 + rng() * 800) };
+  },
+  prompt: (p) => ({ title: "Where did the star flash?", sub: `Keep your eyes on the center dot. A star appears for ${p.dur} ms somewhere else. Tap where it was.` }),
+  setup(c) {
+    c.gphase = "ready"; c.mark = null;
+    controls.innerHTML = `<button class="btn primary" id="glBtn" type="button">Start</button><p class="hint">Look at the center dot, not around the board.</p>`;
+    $("#glBtn").addEventListener("click", (e) => {
+      const b = e.currentTarget; b.disabled = true; b.textContent = "Eyes on the center…";
+      c.gphase = "fix"; draw();
+      const t1 = c.p.delay, t2 = t1 + c.p.dur, t3 = t2 + 160;
+      timers.push(setTimeout(() => { if (cur !== c) return; c.gphase = "flash"; draw(); }, t1));
+      timers.push(setTimeout(() => { if (cur !== c) return; c.gphase = "mask"; draw(); }, t2));
+      timers.push(setTimeout(() => { if (cur !== c) return; c.gphase = "tap"; tapControls(c, "Tap where the star was."); draw(); }, t3));
+    });
+  },
+  tap: (c) => c.gphase === "tap",
+  score: (p, g) => 100 - 2 * Math.hypot(g[0] - p.x, g[1] - p.y),
+  describe(p, g) {
+    const e = Math.hypot(g[0] - p.x, g[1] - p.y);
+    const dr = Math.hypot(g[0] - 200, g[1] - 200) - Math.hypot(p.x - 200, p.y - 200);
+    const fact = e < 8 ? "Right on it. You caught it out of the corner of your eye."
+      : Math.abs(dr) < 6 ? "Right distance from the center, a little off in direction."
+      : `You placed it ${Math.round(Math.abs(dr))} px ${dr < 0 ? "closer to" : "farther from"} the center than it was.`;
+    return { pairs: [["Miss", e.toFixed(1) + " px"], ["Shown for", p.dur + " ms"]], fact };
+  },
+  draw(c) {
+    const p = c.p, reveal = c.phase === "reveal";
+    if (!reveal && c.gphase === "mask") {
+      const rng = mulberry32(hashStr("mask-" + p.x + "-" + p.y));
+      ctx.strokeStyle = C["ink-2"]; ctx.lineWidth = 2; ctx.globalAlpha = 0.55;
+      for (let k = 0; k < 160; k++) {
+        const x = rng() * W, y = rng() * W, a = rng() * Math.PI, l = 6 + rng() * 12;
+        ctx.beginPath(); ctx.moveTo(x - (Math.cos(a) * l) / 2, y - (Math.sin(a) * l) / 2); ctx.lineTo(x + (Math.cos(a) * l) / 2, y + (Math.sin(a) * l) / 2); ctx.stroke();
+      }
+      ctx.globalAlpha = 1;
+    }
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(200, 200, 9, 0, Math.PI * 2); ctx.stroke();
+    ctx.fillStyle = C.ink; ctx.beginPath(); ctx.arc(200, 200, 3, 0, Math.PI * 2); ctx.fill();
+    if (!reveal) {
+      if (c.gphase === "ready") text("eyes here", 200, 228, { size: 12, weight: 500, color: C["ink-2"] });
+      if (c.gphase === "flash") { starPath(p.x, p.y, 13, 5.5); ctx.fillStyle = C.liquid; ctx.fill(); }
+      if (c.gphase === "tap" && c.mark) drawMark(c.mark);
+      return;
+    }
+    const [gx, gy] = c.guess;
+    drawMark(c.guess);
+    ctx.strokeStyle = C["ink-2"]; ctx.lineWidth = 1.5; ctx.setLineDash([4, 4]);
+    ctx.beginPath(); ctx.moveTo(gx, gy); ctx.lineTo(p.x, p.y); ctx.stroke(); ctx.setLineDash([]);
+    starPath(p.x, p.y, 13, 5.5); ctx.fillStyle = C.liquid; ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.stroke();
+    offTag(p.x, p.y, gx, gy, Math.hypot(gx - p.x, gy - p.y).toFixed(1) + " px off");
+  }
+};
+
+/* ---------- Bounce: after Lumosity's Pinball Recall ---------- */
+const BG = { L: 28, R: 372, y0: 40, yF: 372 };
+function foldX(u) { const w = BG.R - BG.L, t = (((u - BG.L) % (2 * w)) + 2 * w) % (2 * w); return t <= w ? BG.L + t : BG.R - (t - w); }
+function bounceX(p, y) { return foldX(p.x0 + p.dir * p.s * (y - BG.y0)); }
+function bouncePts(p, yEnd) {
+  const w = BG.R - BG.L, k = p.dir * p.s, u0 = p.x0, u1 = p.x0 + k * (yEnd - BG.y0), hits = [];
+  if (k !== 0) {
+    const nA = Math.floor((Math.min(u0, u1) - BG.L) / w) + 1, nB = Math.floor((Math.max(u0, u1) - BG.L) / w);
+    for (let n = nA; n <= nB; n++) { const u = BG.L + n * w; hits.push([foldX(u), BG.y0 + (u - u0) / k]); }
+    hits.sort((a, b) => a[1] - b[1]);
+  }
+  return [[p.x0, BG.y0]].concat(hits, [[foldX(u1), yEnd]]);
+}
+const hiddenBounces = (p) => bouncePts(p, BG.yF).filter(([, y]) => y > p.fog && y < BG.yF - 0.01).length;
+MODES.bounce = {
+  name: "Bounce", blurb: "Predict where the ball lands.",
+  gen(rng, i, daily) {
+    const [lo, hi] = daily ? [0.7, 1.9] : [[0.2, 0.55], [0.5, 1.0], [0.9, 1.5], [1.3, 2.1], [1.9, 2.8]][i];
+    return { s: Math.round((lo + rng() * (hi - lo)) * 1000) / 1000, dir: rng() < 0.5 ? -1 : 1, x0: r1(70 + rng() * 260), fog: daily ? 180 : [214, 198, 182, 168, 156][i] };
+  },
+  prompt: () => ({ title: "Where will the ball land?", sub: "Watch it fly. Once it disappears into the fog, tap where it will hit the floor. The side walls bounce it back." }),
+  setup(c) {
+    c.bphase = "ready"; c.by = BG.y0; c.mark = null;
+    controls.innerHTML = `<button class="btn primary" id="bnBtn" type="button">Launch</button><p class="hint">A bounce keeps the angle and flips the direction.</p>`;
+    $("#bnBtn").addEventListener("click", (e) => {
+      const b = e.currentTarget; b.disabled = true; b.textContent = "Watch the ball…";
+      const p = c.p, yEnd = p.fog + 10, ms = clamp((((yEnd - BG.y0) * Math.hypot(1, p.s)) / 250) * 1000, 700, 1900), t0 = performance.now();
+      c.bphase = "fly";
+      const step = (now) => {
+        if (cur !== c || c.bphase !== "fly") return;
+        const a = Math.min(1, (now - t0) / ms);
+        c.by = BG.y0 + (yEnd - BG.y0) * a;
+        if (a < 1) { draw(); requestAnimationFrame(step); }
+        else { c.bphase = "tap"; tapControls(c, "Tap the floor where it will land."); draw(); }
+      };
+      requestAnimationFrame(step);
+    });
+  },
+  tap: (c) => c.bphase === "tap",
+  snap: (c, x) => [r1(clamp(x, BG.L, BG.R)), BG.yF],
+  score: (p, g) => 100 - 1.6 * Math.abs(g[0] - bounceX(p, BG.yF)),
+  describe(p, g) {
+    const e = Math.abs(g[0] - bounceX(p, BG.yF)), n = hiddenBounces(p);
+    const fact = n === 0 ? "No bounces in the fog. It kept a straight line from where it vanished."
+      : `It hit a wall ${n === 1 ? "once" : n + " times"} inside the fog. Each bounce keeps the angle and flips the direction.`;
+    return { pairs: [["Miss", e.toFixed(1) + " px"], ["Hidden bounces", String(n)]], fact };
+  },
+  draw(c) {
+    const p = c.p, reveal = c.phase === "reveal", fh = 378 - p.fog;
+    const fog = (alpha) => {
+      ctx.save();
+      ctx.globalAlpha = alpha; ctx.fillStyle = C.panel; ctx.fillRect(22, p.fog, 356, fh);
+      ctx.beginPath(); ctx.rect(22, p.fog, 356, fh); ctx.clip();
+      ctx.strokeStyle = C["grid-major"]; ctx.lineWidth = 1.5;
+      for (let x = -fh; x < 356; x += 14) { ctx.beginPath(); ctx.moveTo(22 + x, p.fog); ctx.lineTo(22 + x + fh, p.fog + fh); ctx.stroke(); }
+      ctx.restore();
+      ctx.strokeStyle = C["ink-2"]; ctx.lineWidth = 1.5; ctx.setLineDash([6, 5]);
+      ctx.beginPath(); ctx.moveTo(22, p.fog); ctx.lineTo(378, p.fog); ctx.stroke(); ctx.setLineDash([]);
+    };
+    const line = (pts) => { ctx.beginPath(); pts.forEach(([x, y], k) => (k ? ctx.lineTo(x, y) : ctx.moveTo(x, y))); ctx.stroke(); };
+    const ball = (x, y) => { ctx.fillStyle = C.liquid; ctx.beginPath(); ctx.arc(x, y, 6.5, 0, Math.PI * 2); ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.stroke(); };
+    const walls = () => { ctx.strokeStyle = C.ink; ctx.lineWidth = 4; ctx.beginPath(); ctx.moveTo(20, 22); ctx.lineTo(20, 380); ctx.lineTo(380, 380); ctx.lineTo(380, 22); ctx.stroke(); };
+    const floorMark = (x) => {
+      ctx.strokeStyle = C["liquid-deep"]; ctx.lineWidth = 2; ctx.setLineDash([5, 5]);
+      ctx.beginPath(); ctx.moveTo(x, p.fog); ctx.lineTo(x, 378); ctx.stroke(); ctx.setLineDash([]);
+      ctx.fillStyle = C["liquid-deep"]; ctx.beginPath(); ctx.moveTo(x, 384); ctx.lineTo(x - 8, 397); ctx.lineTo(x + 8, 397); ctx.closePath(); ctx.fill();
+    };
+    const trail = (yEnd) => { if (yEnd > BG.y0 + 0.5) { ctx.strokeStyle = C["ink-2"]; ctx.lineWidth = 2; ctx.globalAlpha = 0.65; line(bouncePts(p, yEnd)); ctx.globalAlpha = 1; } };
+    if (!reveal) {
+      trail(Math.min(c.by, p.fog));
+      if (c.bphase === "ready") {
+        const dx = p.dir * p.s, n = Math.hypot(dx, 1);
+        ctx.strokeStyle = C["ink-2"]; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(p.x0, BG.y0); ctx.lineTo(p.x0 + (dx / n) * 42, BG.y0 + 42 / n); ctx.stroke(); ctx.setLineDash([]);
+      }
+      if (c.bphase !== "tap") ball(bounceX(p, c.by), c.by);
+      fog(1);
+      walls();
+      tag("fog", 28, p.fog + 18, { align: "left", size: 12, color: C["ink-2"] });
+      if (c.mark) floorMark(c.mark[0]);
+      return;
+    }
+    const land = bounceX(p, BG.yF), gx = c.guess[0];
+    fog(0.6);
+    trail(p.fog);
+    walls();
+    floorMark(gx);
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 2.5; ctx.setLineDash([7, 6]);
+    line([[bounceX(p, p.fog), p.fog]].concat(bouncePts(p, BG.yF).filter(([, y]) => y > p.fog)));
+    ctx.setLineDash([]);
+    ball(land, BG.yF);
+    tag("you", gx, p.fog - 14, { size: 12, color: C["liquid-deep"] });
+    tag(Math.abs(gx - land).toFixed(1) + " px off", land, BG.yF - 32, { size: 14 });
+  }
+};
+
+/* ---------- Ballpark: after Lumosity's Raindrops ---------- */
+const BP_MS = 7000;
+const fmtN = (n) => n.toLocaleString("en-US", { maximumFractionDigits: 1 });
+function sig1(n) { const p = 10 ** Math.floor(Math.log10(Math.abs(n))); return Math.round(n / p) * p; }
+function bpProblem(rng, kind) {
+  const R = (a, b) => a + Math.floor(rng() * (b - a + 1));
+  const odd = (a, b) => { let v; do { v = R(a, b); } while (v % 10 === 0); return v; };
+  if (kind === "sum") {
+    const xs = [0, 1, 2, 3].map(() => odd(112, 988)), rs = xs.map((x) => Math.round(x / 100) * 100);
+    return { kind, text: xs.map(fmtN).join(" + "), ans: xs.reduce((s, x) => s + x, 0), hint: `${rs.map(fmtN).join(" + ")} = ${fmtN(rs.reduce((s, x) => s + x, 0))}` };
+  }
+  if (kind === "pct") {
+    let q; do { q = R(6, 89); } while (q % 5 === 0);
+    const n = odd(120, 980), a = sig1(q), b = sig1(n);
+    return { kind, text: `${q}% of ${fmtN(n)}`, ans: Math.round(q * n) / 100, hint: `${a}% of ${fmtN(b)} = ${fmtN((a * b) / 100)}` };
+  }
+  const [a, b] = kind === "mul1" ? [odd(23, 98), R(6, 9)] : kind === "mul2" ? [odd(23, 98), odd(23, 98)] : [odd(213, 987), odd(13, 89)];
+  return { kind, text: `${fmtN(a)} × ${fmtN(b)}`, ans: a * b, hint: `${fmtN(sig1(a))} × ${fmtN(sig1(b))} = ${fmtN(sig1(a) * sig1(b))}` };
+}
+function bpStart(c) {
+  if (cur !== c || c.phase !== "guess" || c.bpphase !== "ready") return;
+  c.bpphase = "run"; c.t0 = performance.now(); c.left = 1;
+  const keys = [1, 2, 3, 4, 5, 6, 7, 8, 9].map((d) => `<button class="key" type="button" data-k="${d}">${d}</button>`).join("");
+  controls.innerHTML =
+    `<div class="answer"><span>≈</span><output id="bpOut" aria-live="polite"></output></div>
+    <div class="keypad" id="keypad" role="group" aria-label="Number pad">${keys}<button class="key" type="button" data-k="back" aria-label="Delete last digit">⌫</button><button class="key" type="button" data-k="0">0</button><button class="key ok" type="button" data-k="ok">Lock in</button></div>`;
+  $("#keypad").addEventListener("click", (e) => { const b = e.target.closest(".key"); if (b) bpKey(c, b.dataset.k); });
+  timers.push(setTimeout(() => { if (cur === c && c.phase === "guess") lock(c.entry ? +c.entry : null); }, BP_MS));
+  const tick = (now) => {
+    if (cur !== c || c.phase !== "guess") return;
+    c.left = Math.max(0, 1 - (now - c.t0) / BP_MS); draw();
+    if (c.left > 0) requestAnimationFrame(tick);
+  };
+  requestAnimationFrame(tick);
+  draw();
+}
+function bpKey(c, k) {
+  if (cur !== c || c.phase !== "guess" || c.bpphase !== "run") return;
+  if (k === "ok") { if (c.entry) lock(+c.entry); return; }
+  if (k === "back") c.entry = c.entry.slice(0, -1);
+  else if (c.entry.length < 7 && !(c.entry === "" && k === "0")) c.entry += k;
+  const o = $("#bpOut"); if (o) o.textContent = c.entry ? fmtN(+c.entry) : "";
+}
+document.addEventListener("keydown", (e) => {
+  if (!cur || cur.mode !== "ballpark" || cur.phase !== "guess") return;
+  const onButton = e.target && e.target.closest && e.target.closest("button");
+  if (cur.bpphase === "ready") { if (e.key === "Enter" && !onButton) { e.preventDefault(); bpStart(cur); } return; }
+  if (cur.bpphase !== "run") return;
+  if (onButton && (e.key === "Enter" || e.key === " ")) return;
+  if (/^[0-9]$/.test(e.key)) { e.preventDefault(); bpKey(cur, e.key); }
+  else if (e.key === "Backspace") { e.preventDefault(); bpKey(cur, "back"); }
+  else if (e.key === "Enter") { e.preventDefault(); bpKey(cur, "ok"); }
+});
+MODES.ballpark = {
+  name: "Ballpark", blurb: "Estimate the answer in 7 seconds.",
+  gen(rng, i, daily) { return bpProblem(rng, daily ? pick(rng, ["mul2", "mul3", "pct", "sum"]) : ["mul1", "mul2", "pct", "sum", "mul3"][i]); },
+  prompt: () => ({ title: "Ballpark it", sub: "You get 7 seconds. Type an estimate, not an exact answer. The closer you are, the more you score." }),
+  setup(c) {
+    c.bpphase = "ready"; c.entry = "";
+    stageEl.classList.add("short");
+    controls.innerHTML = `<button class="btn primary" id="bpBtn" type="button">Start the clock</button><p class="hint">Use the keypad or your keyboard.</p>`;
+    $("#bpBtn").addEventListener("click", () => bpStart(c));
+  },
+  score: (p, g) => (g > 0 ? 100 - 220 * Math.abs(Math.log(g / p.ans)) : 0),
+  describe(p, g) {
+    if (!(g > 0)) return { pairs: [["You", "no answer"], ["Exact", fmtN(p.ans)]], fact: `Time ran out. A quick route: ${p.hint}.` };
+    const d = (g - p.ans) / p.ans;
+    const lead = Math.abs(d) < 0.005 ? "Spot on." : `${Math.round(Math.abs(d) * 100)}% ${d > 0 ? "over" : "under"}.`;
+    return { pairs: [["You", fmtN(g)], ["Exact", fmtN(p.ans)]], fact: `${lead} A quick route: ${p.hint}.` };
+  },
+  draw(c) {
+    const p = c.p;
+    if (c.phase === "reveal") {
+      fitText(p.text, 200, 40, 360, 24, { weight: 700, color: C["ink-2"] });
+      fitText("= " + fmtN(p.ans), 200, 90, 360, 44, { weight: 900, font: "display" });
+      text(c.guess > 0 ? "you said " + fmtN(c.guess) : "no answer", 200, 134, { size: 16, weight: 700, color: C["liquid-deep"] });
+      fitText("quick route: " + p.hint, 200, 170, 380, 12, { weight: 500, color: C["ink-2"] });
+      return;
+    }
+    if (c.bpphase === "run") {
+      fitText(p.text, 200, 92, 360, 48, { weight: 900, font: "display" });
+      const left = c.left == null ? 1 : c.left;
+      ctx.fillStyle = C.rule; ctx.fillRect(0, 192, W, 8);
+      ctx.fillStyle = left < 0.3 ? C["liquid-deep"] : C.liquid; ctx.fillRect(0, 192, W * left, 8);
+      tag(Math.ceil(left * (BP_MS / 1000)) + " s", 392, 20, { align: "right", size: 13, color: C["ink-2"] });
+      return;
+    }
+    text("7 seconds", 200, 86, { size: 40, weight: 900, font: "display" });
+    text("estimate, don't calculate", 200, 130, { size: 13, weight: 500, color: C["ink-2"] });
+  }
+};
+
 function countInput(c) {
   controls.innerHTML =
     `<div class="readrow">
@@ -1066,27 +1361,40 @@ function countInput(c) {
   try { inp.focus({ preventScroll: true }); } catch (_) {}
 }
 
-/* ---------- center-mode input on the canvas ---------- */
+/* ---------- tap-to-mark input on the canvas (Center, Glimpse, Bounce) ---------- */
 let dragging = false;
-function setMark(e) {
-  const r = cv.getBoundingClientRect();
-  cur.mark = [r1(clamp(((e.clientX - r.left) / r.width) * W, 0, W)), r1(clamp(((e.clientY - r.top) / r.height) * W, 0, W))];
+function tapMode() {
+  if (!cur || cur.phase !== "guess") return null;
+  const m = MODES[cur.mode];
+  return m.tap && m.tap(cur) ? m : null;
+}
+function placeMark(m, x, y) {
+  cur.mark = m.snap ? m.snap(cur, x, y) : [r1(clamp(x, 0, W)), r1(clamp(y, 0, W))];
   markPlaced();
 }
+function setMark(e) {
+  const m = tapMode(); if (!m) return;
+  const r = cv.getBoundingClientRect();
+  placeMark(m, ((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.width) * W);
+}
 function markPlaced() { const lb = $("#lockBtn"); if (lb) lb.disabled = false; const h = $("#cHint"); if (h) h.textContent = "Drag to adjust, then lock it in."; draw(); }
-const centerActive = () => cur && cur.mode === "center" && cur.phase === "guess";
-cv.addEventListener("pointerdown", (e) => { if (!centerActive()) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} dragging = true; setMark(e); });
-cv.addEventListener("pointermove", (e) => { if (dragging && centerActive()) setMark(e); });
+function tapControls(c, hint) {
+  stageEl.classList.add("touch");
+  cv.tabIndex = 0;
+  controls.innerHTML = `<p class="hint" id="cHint">${hint}</p><button class="btn primary" id="lockBtn" type="button" disabled>Lock in</button>`;
+  $("#lockBtn").addEventListener("click", () => { if (c.mark) lock(c.mark.slice()); });
+}
+cv.addEventListener("pointerdown", (e) => { if (!tapMode()) return; e.preventDefault(); try { cv.setPointerCapture(e.pointerId); } catch (_) {} dragging = true; setMark(e); });
+cv.addEventListener("pointermove", (e) => { if (dragging) setMark(e); });
 cv.addEventListener("pointerup", () => { dragging = false; });
 cv.addEventListener("pointercancel", () => { dragging = false; });
 cv.addEventListener("keydown", (e) => {
-  if (!centerActive()) return;
+  const m = tapMode(); if (!m) return;
   const k = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];
   if (k) {
     e.preventDefault();
-    const s = e.shiftKey ? 10 : 1, m = cur.mark || [200, 200];
-    cur.mark = [clamp(m[0] + k[0] * s, 0, W), clamp(m[1] + k[1] * s, 0, W)];
-    markPlaced();
+    const s = e.shiftKey ? 10 : 1, base = cur.mark || (m.snap ? m.snap(cur, 200, 200) : [200, 200]);
+    placeMark(m, base[0] + k[0] * s, base[1] + k[1] * s);
   } else if (e.key === "Enter" && cur.mark) { e.preventDefault(); lock(cur.mark.slice()); }
 });
 
@@ -1112,7 +1420,7 @@ function startRound() {
   clearTimers();
   const r = run.rounds[run.idx], m = MODES[r.mode];
   cur = { mode: r.mode, p: r.p, phase: "guess", anim: 1 };
-  stageEl.classList.remove("touch", "pick");
+  stageEl.classList.remove("touch", "pick", "short");
   cv.removeAttribute("tabindex");
   const pr = m.prompt(r.p);
   $("#roundLabel").textContent = `Round ${run.idx + 1} of ${run.rounds.length} · ${m.name}`;
