@@ -32,27 +32,41 @@ Pour 92 · Flash 71 · Angle 88 · Center 95 · Hold 66
 
 The day follows each player's own clock. Puzzle No. 13 is everyone's 27 October, so a player in New York gets it hours after a player in Shanghai, and each new set starts at local midnight.
 
-There's also a practice mode for each game (five rounds that get harder), plus a streak, games played and personal bests. These are saved in the player's own browser.
+There's also a practice mode for each game (five rounds that get harder), plus a streak, games played and personal bests.
+
+## Accounts or guest play
+
+On their first visit, players choose: **create an account** or **play as a guest**.
+
+- **Guests** play straight away. Their streak and bests are saved in their own browser, and they type a name when they post to the leaderboard.
+- **Accounts** sign up with a name, email and password (or Google, if you turn it on). Their name is reserved on the leaderboard, and their streak, games played, best day and today's result follow them to every device.
+- A guest who later makes an account, or signs in, keeps the scores they posted as a guest on that device, so the streak carries over.
 
 ## Daily leaderboard
 
-After the daily five, players can post their score under a name and see their rank against everyone who played the same puzzle, wherever they live. The leaderboard runs on a free [Supabase](https://supabase.com) database. Until it's connected, the game works as before and the leaderboard stays hidden.
+After the daily five, players see their rank against everyone who played the same puzzle, wherever they live. Accounts post automatically under their name; guests pick a name. The leaderboard and accounts run on a free [Supabase](https://supabase.com) project. Until it's connected, the game works on its own and both stay hidden.
 
-Set it up (about 10 minutes):
+### Set up Supabase (about 10 minutes)
 
 1. Create a free Supabase account and a new project. Pick the region closest to most of your players, for example Frankfurt.
-2. In the project, open **SQL Editor**, click **New query**, paste everything from [`supabase/leaderboard.sql`](supabase/leaderboard.sql) and click **Run**.
+2. In the project, open **SQL Editor**, click **New query**, paste everything from [`supabase/setup.sql`](supabase/setup.sql) and click **Run**. It's safe to run again, and it upgrades a project that ran the older leaderboard-only script.
 3. Open the project's **Connect** dialog, or **Settings → API Keys**, and copy the **Project URL** and the **publishable key** (it starts with `sb_publishable_`). Never use a secret key here.
-4. Edit [`board-config.js`](board-config.js) in this repository, paste both values and commit. The leaderboard appears on the results screen of the daily five.
+4. Edit [`board-config.js`](board-config.js), paste both values and commit.
+5. Open **Authentication → URL Configuration**. Set **Site URL** to the game's address (`https://essa0044.github.io/Guesstimate/`, or your own domain once you have one) and add the same address under **Redirect URLs**. Confirmation and password-reset emails link there.
+6. Open **Authentication → Sign In / Providers → Email** and choose how sign-up works:
+   - **Confirm email off:** players are signed in right after creating an account. Simplest to start with.
+   - **Confirm email on:** players must click a link in an email first. Supabase's built-in email sends only a few emails an hour, so connect your own email service under **Authentication → Emails → SMTP Settings** before you launch. [Resend](https://resend.com) and similar services have free plans.
+7. Optional: to offer **Continue with Google**, enable Google under **Sign In / Providers** and follow Supabase's steps to create a Google OAuth client. The button appears in the game by itself once Google is on.
 
-How it works:
+### How it works
 
-- Players choose a name the first time they post. Their first score of the day is the one that counts.
+- Each player's first score of the day is the one that counts.
 - Scores are only accepted for a date that is "today" somewhere on Earth, so each day's board stays open until midnight in the last time zone.
-- Browsers can't read or change the scores table directly. They go through two database functions that check every score.
-- To remove a name, delete its row in **Table Editor → daily_scores**.
+- Browsers can't read or change the tables directly. They go through database functions that check every score and never send out emails or player ids.
+- A guest can't post under a name that belongs to an account.
+- To remove a name, delete its row in **Table Editor → daily_scores**. To rename an account, edit its row in **Table Editor → profiles**. To delete an account, use **Authentication → Users**; its profile goes with it.
 
-Limits: Supabase's free plan includes a 500 MB database and pauses a project after a week without activity, which a daily game won't hit. Scores are checked for shape (five rounds of 0 to 100 points) but come from the player's browser, so a determined cheater could post a fake one. Re-scoring each guess on the server is the fix if that becomes a problem.
+Limits: Supabase's free plan includes a 500 MB database and 50,000 monthly active users, and pauses a project after a week without activity, which a daily game won't hit. Scores are checked for shape (five rounds of 0 to 100 points) but come from the player's browser, so a determined cheater could post a fake one. Re-scoring each guess on the server is the fix if that becomes a problem.
 
 ## Run it locally
 
@@ -73,8 +87,8 @@ python3 -m http.server 8000
 
 ```
 index.html               the whole game: markup, styles and script
-board-config.js          leaderboard address and publishable key (empty until set up)
-supabase/leaderboard.sql database setup for the daily leaderboard
+board-config.js          Supabase address and publishable key for the leaderboard and accounts
+supabase/setup.sql       database setup for the leaderboard and accounts
 favicon.svg              browser tab and home-screen icon
 manifest.webmanifest     lets phones add the game to the home screen
 ```

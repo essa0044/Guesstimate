@@ -13,6 +13,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="manifest" href="manifest.webmanifest">
 <script src="board-config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.117.3/dist/umd/supabase.js" integrity="sha384-BWcjm9OdFth9TbhCxZPdm+gAOUMAzQy9nmTs12ioXdCcbVnJaPMn+fMUoQCLt60R" crossorigin="anonymous" async id="sbjs"></script>
 <style>
 :root { color-scheme: light; padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 body { margin: 0; }
@@ -351,6 +352,38 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
 .board-msg { font-size: 14px; color: var(--ink-2); }
 .board-msg[data-error="true"] { color: var(--liquid-deep); }
 
+/* Accounts */
+.acct {
+  appearance: none; max-width: 55%; padding: 8px 14px;
+  border: 1.5px solid var(--rule); border-radius: 999px; background: var(--panel); color: var(--ink);
+  font: 700 13px/1 var(--font-body); cursor: pointer;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.welcome { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 6px; background: var(--me-bg); }
+.welcome h2 { font: 850 21px/1.15 var(--font-display); font-stretch: 108%; text-wrap: balance; }
+.welcome p { color: var(--ink-2); font-size: 15px; line-height: 1.45; }
+.welcome .btn-row { flex-wrap: wrap; }
+.welcome .ghost { align-self: flex-start; }
+.acct-pane { display: flex; flex-direction: column; gap: 16px; }
+.acct-title { font: 850 clamp(26px, 7vw, 32px)/1.1 var(--font-display); font-stretch: 108%; overflow-wrap: anywhere; }
+.acct-tabs { display: flex; gap: 4px; padding: 4px; border: 1.5px solid var(--rule); border-radius: 999px; background: var(--panel); }
+.acct-tabs button {
+  flex: 1; min-height: 42px; border: 0; border-radius: 999px; background: transparent;
+  color: var(--ink-2); font: 700 15px/1 var(--font-body); cursor: pointer;
+}
+.acct-tabs button[aria-selected="true"] { background: var(--ink); color: var(--paper); }
+.acct-form { display: flex; flex-direction: column; gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label { font: 600 14px/1.3 var(--font-body); }
+.field input {
+  min-height: 52px; padding: 0 14px; border-radius: 12px;
+  border: 1.5px solid var(--rule); background: var(--panel); color: var(--ink);
+  font: 500 16px/1 var(--font-body);
+}
+.acct-alt { display: flex; flex-direction: column; gap: 10px; }
+.or { text-align: center; color: var(--ink-2); font-size: 13px; }
+.acct-pane > .ghost, .acct-form > .ghost { align-self: flex-start; }
+
 @media (prefers-reduced-motion: reduce) {
   .wordmark, .bar i { animation: none; }
   .btn, .hold, .pip { transition: none; }
@@ -363,10 +396,21 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
   <section id="home" class="screen">
     <div class="brandbar">
       <span class="eyebrow">Estimation games</span>
-      <span class="eyebrow">9 games · 2 min</span>
+      <span class="eyebrow" id="gameCount">9 games · 2 min</span>
+      <button class="acct" id="acctBtn" type="button" hidden>Sign in</button>
     </div>
     <h1 class="wordmark" aria-label="Guesstimate">guesstimate</h1>
     <p class="tagline">Quick tests of how well you judge volume, numbers, space, time and color.</p>
+
+    <div class="welcome" id="welcome" hidden>
+      <h2>Play as a guest or make an account</h2>
+      <p>An account keeps your name on the leaderboard, and your streak and scores on every device.</p>
+      <div class="btn-row">
+        <button class="btn primary" id="wCreate" type="button">Create account</button>
+        <button class="btn" id="wGuest" type="button">Play as guest</button>
+      </div>
+      <button class="ghost" id="wSignIn" type="button">Already have an account? Sign in</button>
+    </div>
 
     <div class="daily">
       <div class="daily-head">
@@ -433,12 +477,13 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
       </div>
       <p class="board-rank" id="boardRank" hidden></p>
       <form class="board-form" id="boardForm" hidden novalidate>
-        <label for="boardName">Your name on the board</label>
+        <label for="boardName" id="boardNameLabel">Your name on the board</label>
         <div class="board-row">
           <input id="boardName" type="text" maxlength="16" autocomplete="nickname" enterkeyhint="send" placeholder="e.g. Sam">
           <button class="btn primary" id="boardPost" type="submit">Post score</button>
         </div>
         <p class="fine">Your name and score are public. Your first score of the day is the one that counts.</p>
+        <button class="ghost" id="boardSignIn" type="button" hidden>Have an account? Sign in to post under it</button>
       </form>
       <ol class="board-list" id="boardList" aria-label="Top scores today"></ol>
       <p class="board-msg" id="boardMsg" aria-live="polite"></p>
@@ -454,6 +499,73 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
     </div>
     <button class="ghost" id="resHome" type="button">← Home</button>
     <p class="fine" id="resNext" hidden>Next daily five in <span class="nextIn">--:--:--</span>.</p>
+  </section>
+
+  <!-- ACCOUNT -->
+  <section id="account" class="screen" hidden>
+    <div class="playbar"><button class="ghost" id="acctBack" type="button">← Back</button></div>
+
+    <div class="acct-pane" id="acctOut">
+      <h2 class="acct-title" id="acctTitle">Create an account</h2>
+      <div class="acct-tabs" role="tablist" aria-label="Account">
+        <button type="button" role="tab" id="tabCreate" aria-selected="true">Create account</button>
+        <button type="button" role="tab" id="tabSignIn" aria-selected="false">Sign in</button>
+      </div>
+      <form class="acct-form" id="authForm" novalidate>
+        <div class="field" id="fName">
+          <label for="aName">Name on the leaderboard</label>
+          <input id="aName" type="text" maxlength="16" autocomplete="nickname" placeholder="e.g. Sam">
+        </div>
+        <div class="field">
+          <label for="aEmail">Email</label>
+          <input id="aEmail" type="email" inputmode="email" autocomplete="email">
+        </div>
+        <div class="field">
+          <label for="aPass">Password</label>
+          <input id="aPass" type="password" autocomplete="new-password" minlength="6">
+        </div>
+        <button class="btn primary" id="authSubmit" type="submit">Create account</button>
+        <button class="ghost" id="forgotBtn" type="button" hidden>Forgot your password?</button>
+      </form>
+      <div class="acct-alt" id="googleWrap" hidden>
+        <p class="or">or</p>
+        <button class="btn" id="googleBtn" type="button">Continue with Google</button>
+      </div>
+      <p class="board-msg" id="authMsg" aria-live="polite"></p>
+      <button class="ghost" id="guestBtn" type="button">Play as a guest instead</button>
+    </div>
+
+    <div class="acct-pane" id="acctIn" hidden>
+      <p class="eyebrow">Your account</p>
+      <h2 class="acct-title" id="meName"></h2>
+      <p class="fine" id="meEmail"></p>
+      <dl class="stats">
+        <div><dt>Played</dt><dd id="meP">0</dd></div>
+        <div><dt>Streak</dt><dd id="meS">0</dd></div>
+        <div><dt>Best day</dt><dd id="meB">–</dd></div>
+      </dl>
+      <form class="acct-form" id="nameForm" novalidate>
+        <div class="field">
+          <label for="newName" id="newNameLabel">Change your name</label>
+          <input id="newName" type="text" maxlength="16" autocomplete="nickname">
+        </div>
+        <button class="btn" id="nameSave" type="submit">Save name</button>
+      </form>
+      <p class="board-msg" id="meMsg" aria-live="polite"></p>
+      <button class="btn" id="signOutBtn" type="button">Sign out</button>
+    </div>
+
+    <div class="acct-pane" id="acctReset" hidden>
+      <h2 class="acct-title">Set a new password</h2>
+      <form class="acct-form" id="resetForm" novalidate>
+        <div class="field">
+          <label for="newPass">New password</label>
+          <input id="newPass" type="password" autocomplete="new-password" minlength="6">
+        </div>
+        <button class="btn primary" type="submit">Save password</button>
+      </form>
+      <p class="board-msg" id="resetMsg" aria-live="polite"></p>
+    </div>
   </section>
 </div>
 
@@ -491,6 +603,7 @@ function dayNumber(d = new Date()) { return Math.floor((Date.UTC(d.getFullYear()
 function prettyDate(d = new Date()) { return d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" }); }
 function untilMidnight() { const n = new Date(); const m = new Date(n.getFullYear(), n.getMonth(), n.getDate() + 1); let s = Math.max(0, Math.floor((m - n) / 1000)); const h = Math.floor(s / 3600); s -= h * 3600; const mi = Math.floor(s / 60); s -= mi * 60; return [h, mi, s].map((x) => String(x).padStart(2, "0")).join(":"); }
 const tier = (p) => (p >= 80 ? "good" : p >= 50 ? "mid" : "off");
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 
 /* ---------- icons ---------- */
 const ICONS = {
@@ -1450,7 +1563,7 @@ let run = null, cur = null, screen = "home", timers = [];
 function clearTimers() { timers.forEach(clearTimeout); timers = []; }
 function show(id) {
   screen = id;
-  ["home", "play", "results"].forEach((s) => { $("#" + s).hidden = s !== id; });
+  ["home", "play", "results", "account"].forEach((s) => { $("#" + s).hidden = s !== id; });
   window.scrollTo(0, 0);
 }
 function newRun(kind, mode) {
@@ -1565,7 +1678,7 @@ function renderResults(o, newBest) {
       <span style="color:var(--ink)">${ICONS[r.mode]}</span>
       <div style="min-width:0">
         <div class="res-name">${MODES[r.mode].name}</div>
-        <div class="res-detail">${r.pairs.map(([l, v]) => `${l} ${v}`).join(" · ")}</div>
+        <div class="res-detail">${r.pairs.map(([l, v]) => `${esc(l)} ${esc(v)}`).join(" · ")}</div>
         <div class="bar"><i data-tier="${tier(r.pts)}" style="width:${Math.max(2, r.pts)}%"></i></div>
       </div>
       <span class="res-pts">${r.pts}</span>
@@ -1607,7 +1720,7 @@ $("#copyBtn").addEventListener("click", () => {
 $("#resHome").addEventListener("click", showHome);
 
 /* ---------- daily leaderboard ----------
-   Scores go to a Supabase database set up with supabase/leaderboard.sql.
+   Scores go to a Supabase database set up with supabase/setup.sql.
    The public site reads its address and publishable key from board-config.js;
    without them (or inside the Claude preview) the leaderboard stays hidden.
    Each player's day is their own local date, so everyone who plays "No. 13"
@@ -1635,8 +1748,39 @@ async function boardCall(fn, body) {
   catch (e) { throw new Error("Couldn't reach the leaderboard. Check your connection."); }
   finally { clearTimeout(t); }
   const data = await r.json().catch(() => null);
-  if (!r.ok) throw new Error((data && data.code === "P0001" && data.message) || (fn === "submit_score" ? "Your score wasn't saved. Try again in a minute." : "The leaderboard didn't load. Try again in a minute."));
+  if (!r.ok) {
+    const e = new Error((data && data.code === "P0001" && data.message) || (fn === "submit_score" ? "Your score wasn't saved. Try again in a minute." : "The leaderboard didn't load. Try again in a minute."));
+    e.code = data && data.code;
+    throw e;
+  }
   return data;
+}
+// Calls a database function. Signed-in players go through the Supabase client so their
+// account comes along; without it, a plain request works for guests.
+async function rpc(fn, args) {
+  const c = await sb();
+  const call = async (a) => {
+    if (!c) return boardCall(fn, a);
+    let res;
+    try { res = await c.rpc(fn, a); }
+    catch (_) { throw new Error("Couldn't reach the server. Check your connection."); }
+    if (res.error) {
+      const e = new Error(res.error.code === "P0001" ? res.error.message
+        : fn === "submit_score" ? "Your score wasn't saved. Try again in a minute." : "That didn't load. Try again in a minute.");
+      e.code = res.error.code;
+      throw e;
+    }
+    return res.data;
+  };
+  try { return await call(args); }
+  catch (e) {
+    // A database that hasn't run setup.sql yet doesn't take round details: post without them.
+    if (e.code === "PGRST202" && fn === "submit_score" && "p_detail" in args) {
+      const a = Object.assign({}, args); delete a.p_detail;
+      return call(a);
+    }
+    throw e;
+  }
 }
 function boardMsg(text, isError, retry) {
   const m = $("#boardMsg");
@@ -1651,6 +1795,12 @@ function renderBoard(o) {
   el.hidden = false;
   $("#boardRank").hidden = true;
   $("#boardList").innerHTML = "";
+  if (ME) {
+    // Accounts post under their own name. The first score of the day counts, so posting again is safe.
+    $("#boardName").value = ME.username || "";
+    loadBoard(o, ME.username || null);
+    return;
+  }
   $("#boardName").value = playerName();
   const posted = store.get("board." + o.key, null);
   if (!posted && playerName()) loadBoard(o, playerName());
@@ -1662,10 +1812,14 @@ async function loadBoard(o, postAs) {
   boardMsg(postAs ? "Posting your score…" : "Loading today's board…");
   try {
     const data = postAs
-      ? await boardCall("submit_score", { p_day: o.key, p_player: playerId(), p_name: postAs, p_rounds: o.results.map((r) => r.pts) })
-      : await boardCall("day_board", { p_day: o.key, p_player: playerId() });
+      ? await rpc("submit_score", {
+          p_day: o.key, p_player: playerId(), p_name: postAs, p_rounds: o.results.map((r) => r.pts),
+          p_detail: o.results.map((r) => ({ mode: r.mode, pts: r.pts, pairs: r.pairs }))
+        })
+      : await rpc("day_board", { p_day: o.key, p_player: playerId() });
     if (seq !== boardSeq || boardFor !== o) return;
     drawBoard(o, data);
+    if (postAs && ME) refreshMe();
   } catch (err) {
     if (seq !== boardSeq || boardFor !== o) return;
     boardMsg(err.message, true, () => loadBoard(o, postAs));
@@ -1704,19 +1858,259 @@ function drawBoard(o, data) {
   } else {
     rank.hidden = true;
     $("#boardForm").hidden = false;
+    $("#boardNameLabel").textContent = ME ? "Choose the name for your account" : "Your name on the board";
+    $("#boardSignIn").hidden = !AUTH_READY || !!ME;
     boardMsg(players ? "" : "No scores yet today. Be the first on the board.");
   }
 }
-$("#boardForm").addEventListener("submit", (e) => {
+$("#boardForm").addEventListener("submit", async (e) => {
   e.preventDefault();
   if (!boardFor) return;
   const v = $("#boardName").value.trim().replace(/\s+/g, " ");
   if (v.length < 2 || v.length > 16) { boardMsg("Use a name of 2 to 16 characters.", true); $("#boardName").focus(); return; }
-  NAME = v; store.set("name", v);
   try { $("#boardName").blur(); } catch (_) {}
+  if (ME) {
+    try { await rpc("set_username", { p_name: v }); ME.username = v; renderAccountBits(); }
+    catch (err) { boardMsg(err.message, true); return; }
+  } else {
+    NAME = v; store.set("name", v);
+  }
   loadBoard(boardFor, v);
 });
 $("#boardRefresh").addEventListener("click", () => { if (boardFor) loadBoard(boardFor, null); });
+$("#boardSignIn").addEventListener("click", () => openAccount("signin"));
+
+/* ---------- accounts (Supabase Auth) ----------
+   Players can create an account, sign in, or keep playing as a guest.
+   Accounts need supabase/setup.sql. Until it has run, or inside the Claude preview,
+   the account buttons stay hidden and everyone plays as a guest. */
+const HERE = location.origin + location.pathname;
+let SB = null, ME = null, AUTH_READY = false, GOOGLE = false;
+let authMode = "create", acctReturn = "home", afterSignIn = false;
+let recoveryLink = /type=recovery/.test(location.hash);
+const sbLoaded = new Promise((res) => {
+  if (window.supabase) return res(true);
+  const s = document.getElementById("sbjs");
+  if (!s || !boardOn()) return res(false);
+  s.addEventListener("load", () => res(true));
+  s.addEventListener("error", () => res(false));
+  setTimeout(() => res(!!window.supabase), 10000);
+});
+async function sb() {
+  if (SB) return SB;
+  if (!boardOn() || !(await sbLoaded) || !window.supabase || !window.supabase.createClient) return null;
+  if (!SB) SB = window.supabase.createClient(BOARD.url, BOARD.key, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+  return SB;
+}
+function say(sel, text, isError) { const m = $(sel); m.textContent = text || ""; m.dataset.error = isError ? "true" : "false"; }
+function authError(err) {
+  const m = ((err && err.message) || "").toLowerCase();
+  if (m.includes("invalid login")) return "Wrong email or password.";
+  if (m.includes("already registered") || m.includes("already been registered")) return "That email already has an account. Sign in instead.";
+  if (m.includes("not confirmed")) return "Confirm your email first. The link is in your inbox.";
+  if (m.includes("rate limit") || (err && err.status === 429)) return "Too many tries right now. Wait a little and try again.";
+  if (m.includes("password")) return err.message;
+  if (m.includes("fetch") || m.includes("network")) return "Couldn't reach the server. Check your connection.";
+  return "That didn't work. Check your details and try again.";
+}
+async function initAccounts() {
+  const c = await sb();
+  if (!c) return;
+  let early = [];
+  c.auth.onAuthStateChange((event, session) => {
+    if (!AUTH_READY) { early.push([event, session]); return; }
+    setTimeout(() => onAuth(event, session), 0);
+  });
+  try { await rpc("name_taken", { p_name: "--" }); }
+  catch (e) { if (e.code === "PGRST202") return; }
+  AUTH_READY = true;
+  renderAccountBits();
+  early.forEach(([ev, s]) => setTimeout(() => onAuth(ev, s), 0));
+  early = [];
+  fetch(BOARD.url.replace(/\/+$/, "") + "/auth/v1/settings", { headers: { apikey: BOARD.key } })
+    .then((r) => r.json())
+    .then((s) => { GOOGLE = !!(s && s.external && s.external.google); renderAuthForm(); })
+    .catch(() => {});
+}
+async function onAuth(event, session) {
+  if (event === "TOKEN_REFRESHED") return;
+  if (session && (event === "PASSWORD_RECOVERY" || recoveryLink)) {
+    recoveryLink = false;
+    await loadMe(session);
+    openAccount("reset");
+    return;
+  }
+  if (!session) {
+    ME = null;
+    renderAccountBits();
+    if (screen === "home") showHome();
+    else if (screen === "account") openAccount(authMode === "reset" ? "signin" : null);
+    else if (screen === "results" && boardFor) renderBoard(boardFor);
+    return;
+  }
+  if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
+    // Scores this device posted as a guest move into the account, so the streak carries over.
+    try { await rpc("claim_guest", { p_player: playerId() }); } catch (_) {}
+  }
+  await loadMe(session);
+  if (afterSignIn && screen === "account") { afterSignIn = false; goBack(); return; }
+  if (screen === "home") showHome();
+  else if (screen === "account") openAccount();
+  else if (screen === "results" && boardFor) renderBoard(boardFor);
+}
+async function loadMe(session) {
+  let prof = null;
+  try { prof = await rpc("my_profile", { p_today: todayKey() }); } catch (_) {}
+  ME = Object.assign({ email: session.user.email, username: null, played: 0, streak: 0, best: null }, prof || {});
+  syncToday(prof && prof.today);
+  renderAccountBits();
+}
+async function refreshMe() {
+  const c = await sb();
+  if (!c) return;
+  const { data } = await c.auth.getSession();
+  if (data && data.session) { await loadMe(data.session); if (screen === "home") showHome(); }
+}
+// Today's result played on another device shows here too.
+function syncToday(t) {
+  const key = todayKey();
+  if (!t || !Array.isArray(t.detail) || store.get("daily." + key, null)) return;
+  const results = t.detail
+    .filter((r) => r && MODES[r.mode])
+    .map((r) => ({ mode: r.mode, pts: Math.max(0, Math.min(100, +r.pts || 0)), pairs: Array.isArray(r.pairs) ? r.pairs.slice(0, 2).map((p) => [String(p[0]), String(p[1])]) : [] }));
+  if (results.length !== 5) return;
+  store.set("daily." + key, { kind: "daily", mode: null, key, day: dayNumber(), results, total: t.total });
+}
+function renderAccountBits() {
+  $("#acctBtn").hidden = !AUTH_READY;
+  $("#gameCount").hidden = AUTH_READY;
+  if (AUTH_READY) $("#acctBtn").textContent = ME ? (ME.username || "Your account") : "Sign in";
+  $("#welcome").hidden = !AUTH_READY || !!ME || store.get("guestChosen", false);
+}
+function openAccount(mode) {
+  if (screen !== "account") acctReturn = screen === "results" ? "results" : "home";
+  if (mode) authMode = mode;
+  show("account");
+  const reset = authMode === "reset";
+  $("#acctReset").hidden = !reset;
+  $("#acctIn").hidden = reset || !ME;
+  $("#acctOut").hidden = reset || !!ME;
+  if (reset) return;
+  if (ME) renderMe(); else renderAuthForm();
+}
+function goBack() {
+  if (authMode === "reset") authMode = "signin";
+  if (acctReturn === "results" && boardFor) { show("results"); renderBoard(boardFor); }
+  else showHome();
+}
+function renderAuthForm() {
+  const create = authMode !== "signin";
+  $("#acctTitle").textContent = create ? "Create an account" : "Sign in";
+  $("#tabCreate").setAttribute("aria-selected", String(create));
+  $("#tabSignIn").setAttribute("aria-selected", String(!create));
+  $("#fName").hidden = !create;
+  $("#aPass").setAttribute("autocomplete", create ? "new-password" : "current-password");
+  $("#authSubmit").textContent = create ? "Create account" : "Sign in";
+  $("#forgotBtn").hidden = create;
+  $("#googleWrap").hidden = !GOOGLE;
+}
+function renderMe() {
+  $("#meName").textContent = ME.username || "Choose your name";
+  $("#meEmail").textContent = ME.email ? "Signed in as " + ME.email : "";
+  $("#meP").textContent = ME.played || 0;
+  $("#meS").textContent = ME.streak || 0;
+  $("#meB").textContent = ME.best || "–";
+  $("#newNameLabel").textContent = ME.username ? "Change your name" : "Choose the name shown on the leaderboard";
+  $("#newName").value = ME.username || "";
+}
+async function handleAuth(e) {
+  e.preventDefault();
+  const c = await sb();
+  if (!c) return;
+  const create = authMode !== "signin";
+  const email = $("#aEmail").value.trim(), pass = $("#aPass").value;
+  const name = $("#aName").value.trim().replace(/\s+/g, " ");
+  if (create && (name.length < 2 || name.length > 16)) return say("#authMsg", "Use a name of 2 to 16 characters.", true);
+  if (!/^\S+@\S+\.\S+$/.test(email)) return say("#authMsg", "Enter your email address.", true);
+  if (pass.length < 6) return say("#authMsg", "Use a password of at least 6 characters.", true);
+  const btn = $("#authSubmit");
+  btn.disabled = true;
+  afterSignIn = true;
+  try {
+    if (create) {
+      say("#authMsg", "Creating your account…");
+      if (await rpc("name_taken", { p_name: name })) { afterSignIn = false; return say("#authMsg", "That name is taken. Try another.", true); }
+      const { data, error } = await c.auth.signUp({ email, password: pass, options: { data: { username: name }, emailRedirectTo: HERE } });
+      if (error) { afterSignIn = false; return say("#authMsg", authError(error), true); }
+      if (!data.session) { afterSignIn = false; return say("#authMsg", "Almost done. Open the link we just emailed you to confirm your account."); }
+      say("#authMsg", "");
+    } else {
+      say("#authMsg", "Signing in…");
+      const { error } = await c.auth.signInWithPassword({ email, password: pass });
+      if (error) { afterSignIn = false; return say("#authMsg", authError(error), true); }
+      say("#authMsg", "");
+    }
+  } catch (_) {
+    afterSignIn = false;
+    say("#authMsg", "Couldn't reach the server. Check your connection.", true);
+  } finally {
+    btn.disabled = false;
+  }
+}
+$("#acctBtn").addEventListener("click", () => openAccount(ME ? null : "signin"));
+$("#wCreate").addEventListener("click", () => openAccount("create"));
+$("#wSignIn").addEventListener("click", () => openAccount("signin"));
+$("#wGuest").addEventListener("click", () => { store.set("guestChosen", true); $("#welcome").hidden = true; });
+$("#guestBtn").addEventListener("click", () => { store.set("guestChosen", true); goBack(); });
+$("#acctBack").addEventListener("click", goBack);
+$("#tabCreate").addEventListener("click", () => { authMode = "create"; say("#authMsg", ""); renderAuthForm(); });
+$("#tabSignIn").addEventListener("click", () => { authMode = "signin"; say("#authMsg", ""); renderAuthForm(); });
+$("#authForm").addEventListener("submit", handleAuth);
+$("#forgotBtn").addEventListener("click", async () => {
+  const c = await sb();
+  const email = $("#aEmail").value.trim();
+  if (!c) return;
+  if (!/^\S+@\S+\.\S+$/.test(email)) return say("#authMsg", "Type your email above first, then tap this again.", true);
+  const { error } = await c.auth.resetPasswordForEmail(email, { redirectTo: HERE });
+  say("#authMsg", error ? authError(error) : "If that email has an account, a reset link is on its way.", !!error);
+});
+$("#googleBtn").addEventListener("click", async () => {
+  const c = await sb();
+  if (!c) return;
+  const { error } = await c.auth.signInWithOAuth({ provider: "google", options: { redirectTo: HERE } });
+  if (error) say("#authMsg", authError(error), true);
+});
+$("#signOutBtn").addEventListener("click", async () => {
+  const c = await sb();
+  if (c) { try { await c.auth.signOut({ scope: "local" }); } catch (_) {} }
+  ME = null;
+  renderAccountBits();
+  showHome();
+});
+$("#nameForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const v = $("#newName").value.trim().replace(/\s+/g, " ");
+  if (v.length < 2 || v.length > 16) return say("#meMsg", "Use a name of 2 to 16 characters.", true);
+  try {
+    await rpc("set_username", { p_name: v });
+    ME.username = v;
+    renderMe(); renderAccountBits();
+    say("#meMsg", "Saved. Your scores now show this name.");
+  } catch (err) { say("#meMsg", err.message, true); }
+});
+$("#resetForm").addEventListener("submit", async (e) => {
+  e.preventDefault();
+  const c = await sb();
+  const pass = $("#newPass").value;
+  if (!c) return;
+  if (pass.length < 6) return say("#resetMsg", "Use a password of at least 6 characters.", true);
+  const { error } = await c.auth.updateUser({ password: pass });
+  if (error) return say("#resetMsg", authError(error), true);
+  say("#resetMsg", "");
+  authMode = "signin";
+  openAccount();
+  say("#meMsg", "Password saved. You're signed in.");
+});
 
 /* ---------- home ---------- */
 function showHome() {
@@ -1754,10 +2148,17 @@ function showHome() {
     </button></li>`;
   }).join("");
   $("#modeList").querySelectorAll(".mode-btn").forEach((b) => b.addEventListener("click", () => startRun("practice", b.dataset.mode)));
-  const st = store.get("stats", { played: 0, streak: 0, lastDay: 0, best: 0 });
-  $("#stPlayed").textContent = st.played;
-  $("#stStreak").textContent = st.lastDay >= day - 1 ? st.streak : 0;
-  $("#stBest").textContent = st.best ? st.best : "–";
+  if (ME) {
+    $("#stPlayed").textContent = ME.played || 0;
+    $("#stStreak").textContent = ME.streak || 0;
+    $("#stBest").textContent = ME.best || "–";
+  } else {
+    const st = store.get("stats", { played: 0, streak: 0, lastDay: 0, best: 0 });
+    $("#stPlayed").textContent = st.played;
+    $("#stStreak").textContent = st.lastDay >= day - 1 ? st.streak : 0;
+    $("#stBest").textContent = st.best ? st.best : "–";
+  }
+  renderAccountBits();
   tickClock();
 }
 let shownDay = todayKey();
@@ -1787,6 +2188,7 @@ function boot(data) {
   }
   showHome();
 }
+initAccounts();
 boot({});
 
 })();
