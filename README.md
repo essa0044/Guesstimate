@@ -53,7 +53,7 @@ After the daily five, players see their rank against everyone who played the sam
 2. In the project, open **SQL Editor**, click **New query**, paste everything from [`supabase/setup.sql`](supabase/setup.sql) and click **Run**. It's safe to run again, and it upgrades a project that ran the older leaderboard-only script. Run it again whenever this file changes.
 3. Open the project's **Connect** dialog, or **Settings → API Keys**, and copy the **Project URL** and the **publishable key** (it starts with `sb_publishable_`). Never use a secret key here.
 4. Edit [`board-config.js`](board-config.js), paste both values and commit.
-5. Open **Authentication → URL Configuration**. Set **Site URL** to the game's address (`https://essa0044.github.io/Guesstimate/`, or your own domain once you have one) and add the same address under **Redirect URLs**. Confirmation and password-reset emails link there.
+5. Open **Authentication → URL Configuration**. Set **Site URL** to the game's address (`https://playguesstimate.com/`) and add the same address under **Redirect URLs**. Confirmation and password-reset emails link there.
 6. Open **Authentication → Sign In / Providers → Email** and choose how sign-up works:
    - **Confirm email off:** players are signed in right after creating an account. Simplest to start with.
    - **Confirm email on:** players must click a link in an email first. Supabase's built-in email sends only a few emails an hour, so connect your own email service under **Authentication → Emails → SMTP Settings** before you launch. [Resend](https://resend.com) and similar services have free plans.
@@ -99,7 +99,7 @@ From that date the daily five draws its three rotating slots from the larger poo
 
 ## Custom domain
 
-After pointing a domain at GitHub Pages, replace `https://essa0044.github.io/Guesstimate/` in `index.html` (three places, for link previews) and in Supabase's **Site URL** and **Redirect URLs**. Players' guest streaks are saved per address, so they don't carry over to a new domain; account streaks do.
+The game lives at **https://playguesstimate.com**. The domain is registered at Porkbun: an ALIAS record for the root and a `www` CNAME both point to `essa0044.github.io`, and the domain is verified in GitHub's Pages settings so nobody else can claim it. If the address ever changes, replace `https://playguesstimate.com/` in `index.html` (three places, for link previews) and in Supabase's **Site URL** and **Redirect URLs**. Players' guest streaks are saved per address, so they don't carry over to a new domain; account streaks do.
 
 ## Run it locally
 
@@ -114,7 +114,7 @@ python3 -m http.server 8000
 
 1. In this repository, go to **Settings → Pages**.
 2. Under **Build and deployment**, set **Source** to *Deploy from a branch*, pick `main` and `/ (root)`, and save.
-3. After a minute the game is live at `https://essa0044.github.io/Guesstimate/`.
+3. After a minute the game is live. With the custom domain set (see above), that's `https://playguesstimate.com/`.
 
 ## Project layout
 
