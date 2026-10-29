@@ -1930,6 +1930,8 @@ const HERE = location.origin + location.pathname;
 let SB = null, ME = null, AUTH_READY = false, GOOGLE = false;
 let authMode = "create", acctReturn = "home", afterSignIn = false;
 let recoveryLink = /type=recovery/.test(location.hash);
+// Coming back from "Continue with Google": the sign-in details arrive in the address.
+let oauthReturn = /access_token=/.test(location.hash) && !recoveryLink;
 const sbLoaded = new Promise((res) => {
   if (window.supabase) return res(true);
   const s = document.getElementById("sbjs");
@@ -1995,6 +1997,11 @@ async function onAuth(event, session) {
     try { await rpc("claim_guest", { p_player: playerId() }); } catch (_) {}
   }
   await loadMe(session);
+  if (oauthReturn) {
+    oauthReturn = false;
+    // A new Google account has no leaderboard name yet, so ask for one right away.
+    if (ME && !ME.username) { authMode = "create"; openAccount(); say("#meMsg", "Welcome! Choose the name other players will see on the leaderboard."); $("#newName").focus(); return; }
+  }
   if (afterSignIn && screen === "account") { afterSignIn = false; goBack(); return; }
   if (screen === "home") showHome();
   else if (screen === "account") openAccount();
