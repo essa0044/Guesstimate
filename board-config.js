@@ -6,5 +6,5 @@ window.GUESSTIMATE_BOARD = {
   url: "https://axndmvxmqrrsukehqvhs.supabase.co", // your Project URL, like "https://abcdefghijklmnop.supabase.co"
   key: "sb_publishable_nd87hYRSi-b_SmPVq28tTQ_XtrbZIxk",  // your publishable key, like "sb_publishable_..."
   // Optional: Cloudflare Web Analytics token (see "Visitor numbers" in README.md). Leave empty to turn it off.
-  analytics: ""
+  analytics: "f559139d882c4010ae16a3e9b6363e43"
 };
