@@ -1047,33 +1047,17 @@ const MODES = {
   },
 
   hold: {
-    name: "Hold", blurb: "Feel the seconds without a clock.",
+    name: "Timer", blurb: "Stop a hidden timer at exactly the right time.",
     gen(rng, i, daily) { return { t: r1(daily ? 2.5 + rng() * 4.5 : 2 + rng() * 5.5) }; },
-    prompt: (p) => ({ title: `Hold for exactly ${p.t.toFixed(1)} seconds`, sub: "No clock and no ticking. Let go when it feels right." }),
+    prompt: (p) => ({ title: `Stop the timer at exactly ${p.t.toFixed(1)} seconds`, sub: "Tap to start, then tap again when you think the time is up. No clock, no ticking." }),
     setup(c) {
-      controls.innerHTML = `<button class="hold" id="holdBtn" type="button">Press and hold</button><p class="hint" id="hHint">Space bar works too.</p>`;
+      c.timing = false;
+      controls.innerHTML = `<button class="hold" id="holdBtn" type="button">Tap to start</button><p class="hint" id="hHint">Space bar works too.</p>`;
       const b = $("#holdBtn");
-      let t0 = 0, holding = false;
-      const begin = () => {
-        if (holding || c.phase !== "guess") return;
-        holding = true; t0 = performance.now();
-        b.classList.add("down"); b.textContent = "Let go at " + c.p.t.toFixed(1) + " s";
-        c.holding = true; draw();
-      };
-      const end = () => {
-        if (!holding) return;
-        holding = false; const dt = (performance.now() - t0) / 1000;
-        b.classList.remove("down"); c.holding = false;
-        if (dt < 0.25) { b.textContent = "Press and hold"; $("#hHint").textContent = "Keep pressing, then let go at the target."; draw(); return; }
-        lock(Math.round(dt * 100) / 100);
-      };
-      b.addEventListener("pointerdown", (e) => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (_) {} begin(); });
-      b.addEventListener("pointerup", end);
-      b.addEventListener("pointercancel", end);
-      b.addEventListener("contextmenu", (e) => e.preventDefault());
-      b.addEventListener("keydown", (e) => { if ((e.key === " " || e.key === "Enter") && !e.repeat) { e.preventDefault(); begin(); } });
-      b.addEventListener("keyup", (e) => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); end(); } });
+      // pointerdown reacts the moment a finger or mouse button goes down, which keeps the timing fair.
+      b.addEventListener("pointerdown", (e) => { if (e.button > 0) return; e.preventDefault(); holdTap(c); });
       b.addEventListener("click", (e) => e.preventDefault());
+      b.addEventListener("contextmenu", (e) => e.preventDefault());
     },
     score: (p, g) => 100 - 400 * (Math.abs(g - p.t) / p.t),
     describe(p, g) {
@@ -1084,9 +1068,9 @@ const MODES = {
       const p = c.p;
       if (c.phase !== "reveal") {
         text("TARGET", 200, 112, { size: 12, weight: 600, color: C["ink-2"] });
-        text(p.t.toFixed(1), 200, 200, { size: 124, weight: 900, font: "display", color: c.holding ? C.liquid : C.ink });
+        text(p.t.toFixed(1), 200, 200, { size: 124, weight: 900, font: "display", color: c.timing ? C.liquid : C.ink });
         text("seconds", 200, 276, { size: 16, weight: 500, color: C["ink-2"] });
-        if (c.holding) text("holding…", 200, 322, { size: 14, weight: 700, color: C["liquid-deep"] });
+        if (c.timing) text("timer running…", 200, 322, { size: 14, weight: 700, color: C["liquid-deep"] });
         return;
       }
       const g = c.guess, d = g - p.t, tmax = Math.max(4, Math.ceil(Math.max(g, p.t) * 1.25));
@@ -1499,6 +1483,30 @@ function bpKey(c, k) {
   else if (c.entry.length < 7 && !(c.entry === "" && k === "0")) c.entry += k;
   const o = $("#bpOut"); if (o) o.textContent = c.entry ? fmtN(+c.entry) : "";
 }
+// Timer: the first tap starts a hidden stopwatch, the second stops it.
+function holdTap(c) {
+  if (!c || c !== cur || c.mode !== "hold" || c.phase !== "guess") return;
+  const b = $("#holdBtn");
+  if (!c.timing) {
+    c.timing = true; c.t0 = performance.now();
+    if (b) { b.classList.add("down"); b.textContent = "Tap to stop"; }
+    draw();
+    return;
+  }
+  const dt = (performance.now() - c.t0) / 1000;
+  if (dt < 0.3) return; // ignore an accidental double tap
+  c.timing = false;
+  if (b) b.classList.remove("down");
+  lock(Math.round(dt * 100) / 100);
+}
+document.addEventListener("keydown", (e) => {
+  if (!cur || cur.mode !== "hold" || cur.phase !== "guess") return;
+  if (e.key !== " " && e.key !== "Enter") return;
+  const onButton = e.target && e.target.closest && e.target.closest("button");
+  if (onButton && onButton.id !== "holdBtn") return;
+  e.preventDefault();
+  if (!e.repeat) holdTap(cur);
+});
 document.addEventListener("keydown", (e) => {
   if (!cur || cur.mode !== "ballpark" || cur.phase !== "guess") return;
   const onButton = e.target && e.target.closest && e.target.closest("button");

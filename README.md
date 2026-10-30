@@ -10,7 +10,7 @@
 | **Flash** | Three frames of dots flash by. Guess the total across all three. |
 | **Angle** | Name the angle in degrees by eye. |
 | **Center** | Tap the exact center of a circle or arc, or the midpoint of a line. |
-| **Hold** | Hold a button for exactly the target time, with no clock to watch. |
+| **Timer** | Tap to start a hidden stopwatch and tap again when you think the target time is up. Space bar works on a computer. |
 | **Shade** | Memorize a color, then pick which of two shades is closer. Five picks, each harder. |
 | **Glimpse** | Keep your eyes on the center while a star flashes for a split second somewhere else. Tap where it was. |
 | **Bounce** | Watch a ball fly, then predict where it lands after it bounces out of sight in the fog. |
@@ -22,12 +22,12 @@ Every round scores 0 to 100, so a full day tops out at 500.
 
 ## Today's five
 
-Pour and Flash appear every day. The other three slots rotate among Angle, Center, Hold, Shade, Glimpse, Bounce and Ballpark. Each day's rounds come from a seed based on the date, so everyone gets the same puzzles. After playing you can copy an emoji result to share:
+Pour and Flash appear every day. The other three slots rotate among Angle, Center, Timer, Shade, Glimpse, Bounce and Ballpark. Each day's rounds come from a seed based on the date, so everyone gets the same puzzles. After playing you can copy an emoji result to share:
 
 ```
 Guesstimate No. 1 · 412/500
 🟩🟨🟩🟩🟥
-Pour 92 · Flash 71 · Angle 88 · Center 95 · Hold 66
+Pour 92 · Flash 71 · Angle 88 · Center 95 · Timer 66
 ```
 
 The day follows each player's own clock. Puzzle No. 13 is everyone's 27 October, so a player in New York gets it hours after a player in Shanghai, and each new set starts at local midnight.
