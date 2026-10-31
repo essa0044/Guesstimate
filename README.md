@@ -99,7 +99,7 @@ From that date the daily five draws its three rotating slots from the larger poo
 
 ## Custom domain
 
-The game lives at **https://playguesstimate.com**. The domain is registered at Porkbun: an ALIAS record for the root and a `www` CNAME both point to `essa0044.github.io`, and the domain is verified in GitHub's Pages settings so nobody else can claim it. If the address ever changes, replace `https://playguesstimate.com/` in `index.html` (three places, for link previews) and in Supabase's **Site URL** and **Redirect URLs**. Players' guest streaks are saved per address, so they don't carry over to a new domain; account streaks do.
+The game lives at **https://playguesstimate.com**. The domain is registered at Porkbun, and its DNS is run by Cloudflare (nameservers `cecelia.ns.cloudflare.com` and `maciej.ns.cloudflare.com`). Email for `hello@` and `info@` is still forwarded by Porkbun (the `fwd1`/`fwd2` MX records), and the domain stays verified in GitHub's Pages settings so nobody else can claim it there. If the address ever changes, replace `https://playguesstimate.com/` in `index.html` (three places, for link previews) and in Supabase's **Site URL** and **Redirect URLs**. Players' guest streaks are saved per address, so they don't carry over to a new domain; account streaks do.
 
 ## Run it locally
 
@@ -110,11 +110,13 @@ python3 -m http.server 8000
 # then visit http://localhost:8000
 ```
 
-## Put it online with GitHub Pages
+## Hosting (Cloudflare Pages)
 
-1. In this repository, go to **Settings → Pages**.
-2. Under **Build and deployment**, set **Source** to *Deploy from a branch*, pick `main` and `/ (root)`, and save.
-3. After a minute the game is live. With the custom domain set (see above), that's `https://playguesstimate.com/`.
+The site is a Cloudflare Pages project called `guesstimate`, connected to this repository. Every push to `main` deploys automatically within about a minute; there is no build command and the output folder is the repository root. Each deploy also gets a preview at `https://guesstimate.pages.dev/`.
+
+- Pages serves clean URLs, so `about.html` is reached as `/about`. Link to pages without the `.html`.
+- `_headers` sets security headers and long caching for `fonts/`.
+- To roll back, open the project in Cloudflare → **Deployments**, pick an older deploy and choose **Rollback**.
 
 ## Project layout
 
@@ -125,6 +127,7 @@ about.html               how to play, scoring and FAQ
 privacy.html             privacy policy (Datenschutzerklärung) template
 impressum.html           legal notice template
 pages.css                shared styles for the three pages above
+_headers                 response headers for Cloudflare Pages
 supabase/setup.sql       database setup for the leaderboard and accounts
 supabase/stats.sql       player numbers and retention queries
 fonts/                   self-hosted fonts (SIL Open Font License)
