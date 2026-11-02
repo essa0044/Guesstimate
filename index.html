@@ -299,6 +299,21 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
 .count::placeholder { color: var(--rule); }
 .count::-webkit-outer-spin-button, .count::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
 .hint { text-align: center; font-size: 14px; color: var(--ink-2); }
+.aimrow { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: 16px; align-items: center; }
+.stick {
+  position: relative; width: 96px; height: 96px; border-radius: 50%;
+  border: 1.5px solid var(--rule); background: var(--panel);
+  touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+}
+.stick::before, .stick::after { content: ""; position: absolute; background: var(--rule); left: 50%; top: 14px; bottom: 14px; width: 1.5px; margin-left: -0.75px; }
+.stick::after { top: 50%; bottom: auto; left: 14px; right: 14px; width: auto; height: 1.5px; margin: -0.75px 0 0; }
+.stick i {
+  position: absolute; z-index: 1; left: 50%; top: 50%; width: 40px; height: 40px; margin: -20px 0 0 -20px;
+  border-radius: 50%; background: var(--liquid-deep); box-shadow: 0 2px 6px rgb(0 0 0 / 0.25);
+  transition: transform 0.12s ease-out;
+}
+.stick.on { cursor: grabbing; border-color: var(--liquid-deep); }
+.stick.on i { transition: none; }
 .hold {
   height: 92px; border-radius: 999px;
   border: 2px solid var(--ink); background: var(--panel); color: var(--ink);
@@ -521,6 +536,13 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
         <button class="ghost" id="boardRefresh" type="button">Refresh</button>
       </div>
       <p class="board-rank" id="boardRank" hidden></p>
+      <div class="join" id="newsAsk" hidden>
+        <p><b>Want a heads-up when new games come out?</b> One email when there's something new. Unsubscribe any time.</p>
+        <div class="btn-row" id="newsAskBtns">
+          <button class="btn primary" id="newsYes" type="button">Notify me</button>
+          <button class="btn" id="newsNo" type="button">Not now</button>
+        </div>
+      </div>
       <form class="board-form" id="boardForm" hidden novalidate>
         <label for="boardName" id="boardNameLabel">Your name on the board</label>
         <div class="board-row">
@@ -578,7 +600,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
           <label for="aPass">Password</label>
           <input id="aPass" type="password" autocomplete="new-password" minlength="6">
         </div>
-        <label class="check" id="fNews"><input id="aNews" type="checkbox"> <span>Email me now and then about new games and features. Unsubscribe any time.</span></label>
+        <label class="check" id="fNews"><input id="aNews" type="checkbox"> <span>Get notified when new games come out. Unsubscribe any time.</span></label>
         <button class="btn primary" id="authSubmit" type="submit">Create account</button>
         <button class="ghost" id="forgotBtn" type="button" hidden>Forgot your password?</button>
       </form>
@@ -607,7 +629,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
         </div>
         <button class="btn" id="nameSave" type="submit">Save name</button>
       </form>
-      <label class="check"><input id="meNews" type="checkbox"> <span>Email me now and then about new games and features. Unsubscribe any time.</span></label>
+      <label class="check"><input id="meNews" type="checkbox"> <span>Get notified when new games come out. Unsubscribe any time.</span></label>
       <p class="board-msg" id="meMsg" aria-live="polite"></p>
       <button class="btn" id="signOutBtn" type="button">Sign out</button>
       <button class="ghost danger" id="deleteBtn" type="button" aria-expanded="false" aria-controls="deleteConfirm">Delete account</button>
@@ -1022,11 +1044,15 @@ const MODES = {
     },
     prompt(p) {
       const t = { circle: "Tap the center of the circle", arc: "Tap the center this arc curves around", segment: "Tap the midpoint of the line" }[p.type];
-      return { title: t, sub: "Drag to fine-tune. Arrow keys nudge one step." };
+      return { title: t, sub: "Tap or drag on the grid, or steer with the joystick. A gentle push moves the mark slowly." };
     },
     setup(c) {
       c.mark = null;
-      tapControls(c, "Tap the grid to place your mark.");
+      tapControls(c, "Tap the grid, or steer the mark with the joystick.");
+      // A small joystick beside Lock in, so your thumb doesn't have to cover the shape.
+      $("#lockBtn").insertAdjacentHTML("beforebegin", `<div class="aimrow"><div class="stick" id="stick" role="img" aria-label="Joystick: push to move your mark"><i></i></div></div>`);
+      $(".aimrow").appendChild($("#lockBtn"));
+      joystick(c);
     },
     tap: () => true,
     score(p, g) { const [tx, ty] = centerTarget(p); return 100 - 4 * Math.hypot(g[0] - tx, g[1] - ty); },
@@ -1617,6 +1643,45 @@ function setMark(e) {
   placeMark(m, ((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.width) * W);
 }
 function markPlaced() { const lb = $("#lockBtn"); if (lb) lb.disabled = false; const h = $("#cHint"); if (h) h.textContent = "Drag to adjust, then lock it in."; draw(); }
+/* Joystick for Center: how far you push sets the speed (gentle push = fine steps), so the mark
+   can be steered onto the exact spot without a finger on the board. */
+function joystick(c) {
+  const pad = $("#stick"), knob = pad.querySelector("i");
+  let pid = null, vx = 0, vy = 0, last = 0, pos = null;
+  const MAX_SPEED = 240; // board px per second at full push (the board is 400 px wide)
+  const aim = (e) => {
+    const r = pad.getBoundingClientRect(), max = r.width / 2 - 16;
+    let dx = e.clientX - (r.left + r.width / 2), dy = e.clientY - (r.top + r.height / 2);
+    const n = Math.hypot(dx, dy);
+    if (n > max) { dx *= max / n; dy *= max / n; }
+    knob.style.transform = `translate(${dx}px, ${dy}px)`;
+    const f = Math.min(1, n / max), sp = MAX_SPEED * f * f;
+    const m = Math.hypot(dx, dy);
+    vx = m ? (dx / m) * sp : 0; vy = m ? (dy / m) * sp : 0;
+  };
+  const step = (t) => {
+    if (pid === null || cur !== c || c.phase !== "guess") return;
+    const dt = Math.min(0.05, (t - last) / 1000); last = t;
+    if (vx || vy) {
+      pos[0] = clamp(pos[0] + vx * dt, 0, W); pos[1] = clamp(pos[1] + vy * dt, 0, W);
+      placeMark(MODES[c.mode], pos[0], pos[1]);
+    }
+    requestAnimationFrame(step);
+  };
+  pad.addEventListener("pointerdown", (e) => {
+    if (cur !== c || c.phase !== "guess") return;
+    e.preventDefault();
+    try { pad.setPointerCapture(e.pointerId); } catch (_) {}
+    pid = e.pointerId; pad.classList.add("on");
+    pos = c.mark ? c.mark.slice() : [W / 2, W / 2];
+    if (!c.mark) placeMark(MODES[c.mode], pos[0], pos[1]);
+    aim(e); last = performance.now(); requestAnimationFrame(step);
+  });
+  pad.addEventListener("pointermove", (e) => { if (e.pointerId === pid) aim(e); });
+  const end = (e) => { if (e.pointerId !== pid) return; pid = null; vx = vy = 0; knob.style.transform = ""; pad.classList.remove("on"); };
+  pad.addEventListener("pointerup", end);
+  pad.addEventListener("pointercancel", end);
+}
 function tapControls(c, hint) {
   stageEl.classList.add("touch");
   cv.tabIndex = 0;
@@ -1894,6 +1959,7 @@ async function loadBoard(o, postAs) {
   const seq = ++boardSeq;
   $("#boardForm").hidden = true;
   $("#boardJoin").hidden = true;
+  $("#newsAsk").hidden = true;
   boardMsg(postAs ? "Posting your score…" : "Loading today's board…");
   try {
     const data = postAs
@@ -1939,7 +2005,8 @@ function drawBoard(o, data) {
     rank.hidden = false;
     $("#boardForm").hidden = true;
     $("#shareText").textContent = shareString(o);
-    boardMsg(`Everyone gets puzzle No. ${o.day} on their own ${prettyDate()}. Ranks keep moving until midnight in the last time zone.`);
+    boardMsg("Everyone plays the same puzzle today, so ranks change as more people finish. New puzzle at midnight.");
+    maybeAskNews();
   } else {
     rank.hidden = true;
     if (ME) {
@@ -1963,6 +2030,38 @@ $("#boardForm").addEventListener("submit", async (e) => {
   try { await rpc("set_username", { p_name: v }); ME.username = v; renderAccountBits(); }
   catch (err) { boardMsg(err.message, true); return; }
   loadBoard(boardFor, v);
+});
+/* Ask signed-in players about news emails after they land on the board.
+   At most twice per account on this device, at least 14 days apart, and never once they've said yes. */
+function newsAskKey() { return "newsAsk." + ((ME && ME.email) || ""); }
+function maybeAskNews() {
+  const box = $("#newsAsk");
+  box.hidden = true;
+  if (!ME || ME.news || !AUTH_READY) return;
+  const a = store.get(newsAskKey(), { n: 0, at: 0, day: "" });
+  if (a.day === todayKey()) { box.hidden = false; return; }   // keep showing on the same day it was shown
+  if (a.n >= 2 || a.done || (a.at && Date.now() - a.at < 14 * 864e5)) return;
+  store.set(newsAskKey(), { n: a.n + 1, at: Date.now(), day: todayKey() });
+  $("#newsAskBtns").hidden = false;
+  box.querySelector("p").innerHTML = "<b>Want a heads-up when new games come out?</b> One email when there's something new. Unsubscribe any time.";
+  box.hidden = false;
+}
+$("#newsYes").addEventListener("click", async () => {
+  const p = $("#newsAsk p");
+  $("#newsAskBtns").hidden = true;
+  try {
+    await rpc("set_news", { p_on: true });
+    if (ME) ME.news = true;
+    p.textContent = "Done! We'll email you when new games come out. You can turn this off in your account.";
+  } catch (_) {
+    $("#newsAskBtns").hidden = false;
+    p.textContent = "That didn't save. Try again in a minute.";
+  }
+});
+$("#newsNo").addEventListener("click", () => {
+  const a = store.get(newsAskKey(), { n: 1, at: Date.now() });
+  a.day = ""; store.set(newsAskKey(), a);
+  $("#newsAsk").hidden = true;
 });
 $("#boardRefresh").addEventListener("click", () => { if (boardFor) renderBoard(boardFor); });
 $("#joinCreate").addEventListener("click", () => openAccount("create"));

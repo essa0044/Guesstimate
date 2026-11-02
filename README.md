@@ -130,6 +130,7 @@ pages.css                shared styles for the three pages above
 _headers                 response headers for Cloudflare Pages
 supabase/setup.sql       database setup for the leaderboard and accounts
 supabase/stats.sql       player numbers and retention queries
+supabase/welcome-email.sql   welcome email for new accounts (Resend key goes in Supabase Vault)
 fonts/                   self-hosted fonts (SIL Open Font License)
 vendor/supabase.js       Supabase client library (MIT License)
 og-image.png             preview image for shared links
