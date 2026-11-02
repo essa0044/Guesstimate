@@ -41,3 +41,11 @@ limit 30;
 select count(*) as accounts,
        count(*) filter (where created_at > now() - interval '7 days') as new_this_week
 from public.profiles;
+
+-- 4. Players who agreed to news emails (for a newsletter tool such as Resend Broadcasts).
+-- Only email these addresses, and add an unsubscribe link to every email.
+select u.email, p.username, p.news_at
+from public.profiles p
+join auth.users u on u.id = p.id
+where p.news
+order by p.news_at;

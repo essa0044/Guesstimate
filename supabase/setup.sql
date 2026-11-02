@@ -5,7 +5,7 @@
 -- How it works
 -- * A "day" is the player's own local date (2026-10-27 for everyone playing No. 13), so each
 --   day's board stays open until midnight in the last time zone on Earth.
--- * Guests post under a random id kept in their browser and pick a name each time they post.
+-- * Guests can play and see the board, but only accounts can post scores to it.
 -- * Accounts (Supabase Auth) get a profile with a reserved name. Their scores are saved under
 --   the account, so their streak and today's result follow them to every device.
 -- * Browsers never touch the tables directly. They call the functions below, which check
@@ -38,6 +38,9 @@ create table if not exists public.profiles (
                                 and username !~ '[[:cntrl:]]' and btrim(username) = username))
 );
 create unique index if not exists profiles_username_lower on public.profiles (lower(username));
+-- News emails: only for players who ticked the box. news_at records when they agreed.
+alter table public.profiles add column if not exists news boolean not null default false;
+alter table public.profiles add column if not exists news_at timestamptz;
 
 -- Lock both tables: with row level security on and no policies, the public key can't read or
 -- change rows directly. Only the functions below can.
@@ -57,6 +60,7 @@ set search_path = public, pg_temp
 as $$
 declare
   v_name text := btrim(regexp_replace(coalesce(new.raw_user_meta_data ->> 'username', ''), '\s+', ' ', 'g'));
+  v_news boolean := coalesce(new.raw_user_meta_data ->> 'news', '') = 'true';
 begin
   begin
     if char_length(v_name) between 2 and 16 and v_name !~ '[[:cntrl:]]'
@@ -68,6 +72,9 @@ begin
   exception when unique_violation then
     insert into public.profiles (id, username) values (new.id, null) on conflict (id) do nothing;
   end;
+  if v_news then
+    update public.profiles set news = true, news_at = now() where id = new.id;
+  end if;
   return new;
 end;
 $$;
@@ -111,8 +118,8 @@ as $$
   );
 $$;
 
--- Save a score, then return the board. A signed-in player posts under their account name;
--- a guest posts under the name they typed. The first score of the day counts.
+-- Save a score, then return the board. Only signed-in players can post, under their account
+-- name. The first score of the day counts. (p_player and p_name are kept for older pages.)
 drop function if exists public.submit_score(date, uuid, text, int[]);
 create or replace function public.submit_score(p_day date, p_player uuid, p_name text, p_rounds int[], p_detail jsonb default null)
 returns json
@@ -137,22 +144,12 @@ begin
     raise exception 'Missing player id.' using errcode = 'P0001';
   end if;
 
-  if v_uid is not null then
-    select username into v_name from profiles where id = v_uid;
-    if v_name is null then
-      raise exception 'Choose a name for your account first.' using errcode = 'P0001';
-    end if;
-  else
-    if exists (select 1 from profiles where id = p_player) then
-      raise exception 'Sign in to post with that account.' using errcode = 'P0001';
-    end if;
-    v_name := btrim(regexp_replace(coalesce(p_name, ''), '\s+', ' ', 'g'));
-    if char_length(v_name) not between 2 and 16 or v_name ~ '[[:cntrl:]]' then
-      raise exception 'Use a name of 2 to 16 characters.' using errcode = 'P0001';
-    end if;
-    if exists (select 1 from profiles where lower(username) = lower(v_name)) then
-      raise exception 'That name belongs to an account. Pick another, or sign in if it''s yours.' using errcode = 'P0001';
-    end if;
+  if v_uid is null then
+    raise exception 'Sign in to post your score to the leaderboard.' using errcode = 'P0001';
+  end if;
+  select username into v_name from profiles where id = v_uid;
+  if v_name is null then
+    raise exception 'Choose a name for your account first.' using errcode = 'P0001';
   end if;
 
   if coalesce(array_length(p_rounds, 1), 0) <> 5
@@ -205,6 +202,7 @@ as $$
   )
   select case when auth.uid() is null then null else json_build_object(
     'username', (select username from profiles where id = auth.uid()),
+    'news',     (select news from profiles where id = auth.uid()),
     'played',   (select count(*) from mine),
     'best',     (select max(total) from mine),
     'streak',   coalesce((select len from runs where p_today is not null and last_day >= p_today - 1
@@ -240,6 +238,27 @@ begin
   return json_build_object('username', v_name);
 exception when unique_violation then
   raise exception 'That name is taken. Try another.' using errcode = 'P0001';
+end;
+$$;
+
+-- Turn news emails on or off for the signed-in account.
+create or replace function public.set_news(p_on boolean)
+returns json
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_uid uuid := auth.uid();
+begin
+  if v_uid is null then
+    raise exception 'Sign in first.' using errcode = 'P0001';
+  end if;
+  update profiles
+     set news = coalesce(p_on, false),
+         news_at = case when coalesce(p_on, false) then now() else null end
+   where id = v_uid;
+  return json_build_object('news', coalesce(p_on, false));
 end;
 $$;
 
@@ -301,6 +320,7 @@ revoke all on function public.name_taken(text) from public;
 revoke all on function public.my_profile(date) from public;
 revoke all on function public.set_username(text) from public;
 revoke all on function public.claim_guest(uuid) from public;
+revoke all on function public.set_news(boolean) from public;
 revoke all on function public.delete_my_account() from public;
 grant execute on function public.day_board(date, uuid, int) to anon, authenticated;
 grant execute on function public.submit_score(date, uuid, text, int[], jsonb) to anon, authenticated;
@@ -308,6 +328,7 @@ grant execute on function public.name_taken(text) to anon, authenticated;
 grant execute on function public.my_profile(date) to authenticated;
 grant execute on function public.set_username(text) to authenticated;
 grant execute on function public.claim_guest(uuid) to authenticated;
+grant execute on function public.set_news(boolean) to authenticated;
 grant execute on function public.delete_my_account() to authenticated;
 
 -- Moderating: to remove a name from a board, open Table Editor > daily_scores and delete the

@@ -159,6 +159,10 @@ h1, h2, h3, p { margin: 0; }
   animation: fillup 1.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0.15s both;
 }
 @keyframes fillup { from { --lvl: 0%; } to { --lvl: 44%; } }
+.vh { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.about-blurb { display: flex; flex-direction: column; gap: 8px; }
+.about-blurb h2 { font: 800 16px/1.2 var(--font-display); font-stretch: 108%; }
+.about-blurb p { font-size: 14px; line-height: 1.5; color: var(--ink-2); }
 .tagline { font-size: 18px; line-height: 1.45; color: var(--ink-2); max-width: 34ch; text-wrap: pretty; }
 
 .daily {
@@ -387,6 +391,12 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
 .welcome p { color: var(--ink-2); font-size: 15px; line-height: 1.45; }
 .welcome .btn-row { flex-wrap: wrap; }
 .welcome .ghost { align-self: flex-start; }
+.join { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: 6px; background: var(--me-bg); }
+.join p { font-size: 15px; line-height: 1.45; color: var(--ink-2); }
+.join p b { color: var(--ink); }
+.join .btn-row { flex-wrap: wrap; }
+.check { display: flex; gap: 10px; align-items: flex-start; font-size: 14px; line-height: 1.4; color: var(--ink-2); cursor: pointer; }
+.check input { flex: none; width: 20px; height: 20px; margin: 0; accent-color: var(--ink); }
 .acct-pane { display: flex; flex-direction: column; gap: 16px; }
 .ghost.danger { color: var(--liquid-deep); align-self: flex-start; }
 .confirm { display: flex; flex-direction: column; gap: 12px; padding: 16px; border: 1.5px solid var(--liquid-deep); border-radius: 6px; }
@@ -428,12 +438,12 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
       <span class="eyebrow" id="gameCount">9 games · 2 min</span>
       <button class="acct" id="acctBtn" type="button" hidden>Sign in</button>
     </div>
-    <h1 class="wordmark" aria-label="Guesstimate">guesstimate</h1>
+    <h1 class="wordmark">guesstimate<span class="vh">: the daily estimation game</span></h1>
     <p class="tagline">Quick tests of how well you judge volume, numbers, space, time and color.</p>
 
     <div class="welcome" id="welcome" hidden>
       <h2>Play as a guest or make an account</h2>
-      <p>An account keeps your name on the leaderboard, and your streak and scores on every device.</p>
+      <p>Guests can play and share every day. An account puts you on the daily leaderboard and keeps your streak and scores on every device.</p>
       <div class="btn-row">
         <button class="btn primary" id="wCreate" type="button">Create account</button>
         <button class="btn" id="wGuest" type="button">Play as guest</button>
@@ -466,6 +476,11 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
       <div><dt>Streak</dt><dd id="stStreak">0</dd></div>
       <div><dt>Best day</dt><dd id="stBest">–</dd></div>
     </dl>
+    <section class="about-blurb" aria-labelledby="aboutHead">
+      <h2 id="aboutHead">What is Guesstimate?</h2>
+      <p>A free daily estimation game you play in your browser. Every day brings five quick rounds, the same for everyone: guess how full a glass is, count dots that flash past, read an angle by eye, stop a hidden timer right on time, or pick the closer shade of a color.</p>
+      <p>Each round scores up to 100 points for how close you get, so a perfect day is 500. Share your five colored squares with friends, keep your streak going, and sign in to see where you rank on today's leaderboard. It takes about two minutes, with no download.</p>
+    </section>
     <nav class="site-links" aria-label="Site"><a href="about">About &amp; how to play</a><a href="privacy">Privacy</a><a href="impressum">Impressum</a></nav>
   </section>
 
@@ -513,15 +528,24 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
           <button class="btn primary" id="boardPost" type="submit">Post score</button>
         </div>
         <p class="fine">Your name and score are public. Your first score of the day is the one that counts.</p>
-        <button class="ghost" id="boardSignIn" type="button" hidden>Have an account? Sign in to post under it</button>
       </form>
+      <div class="join" id="boardJoin" hidden>
+        <p><b>Sign in to put your score on the board.</b> A free account keeps your name, streak and scores on every device. Sharing your result works without one.</p>
+        <div class="btn-row">
+          <button class="btn primary" id="joinCreate" type="button">Create account</button>
+          <button class="btn" id="joinSignIn" type="button">Sign in</button>
+        </div>
+      </div>
       <ol class="board-list" id="boardList" aria-label="Top scores today"></ol>
       <p class="board-msg" id="boardMsg" aria-live="polite"></p>
       <button class="ghost" id="boardRetry" type="button" hidden>Try again</button>
     </section>
     <div class="share">
       <pre id="shareText"></pre>
-      <button class="btn" id="copyBtn" type="button">Copy result</button>
+      <div class="btn-row">
+        <button class="btn" id="shareBtn" type="button" hidden>Share</button>
+        <button class="btn" id="copyBtn" type="button">Copy result</button>
+      </div>
       <p class="copy-note" id="copyNote" role="status"></p>
     </div>
     <div class="btn-row">
@@ -554,6 +578,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
           <label for="aPass">Password</label>
           <input id="aPass" type="password" autocomplete="new-password" minlength="6">
         </div>
+        <label class="check" id="fNews"><input id="aNews" type="checkbox"> <span>Email me now and then about new games and features. Unsubscribe any time.</span></label>
         <button class="btn primary" id="authSubmit" type="submit">Create account</button>
         <button class="ghost" id="forgotBtn" type="button" hidden>Forgot your password?</button>
       </form>
@@ -582,6 +607,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
         </div>
         <button class="btn" id="nameSave" type="submit">Save name</button>
       </form>
+      <label class="check"><input id="meNews" type="checkbox"> <span>Email me now and then about new games and features. Unsubscribe any time.</span></label>
       <p class="board-msg" id="meMsg" aria-live="polite"></p>
       <button class="btn" id="signOutBtn" type="button">Sign out</button>
       <button class="ghost danger" id="deleteBtn" type="button" aria-expanded="false" aria-controls="deleteConfirm">Delete account</button>
@@ -1693,9 +1719,9 @@ function shareString(o) {
   const sq = o.results.map((r) => (r.pts >= 80 ? "🟩" : r.pts >= 50 ? "🟨" : "🟥")).join("");
   if (o.kind === "daily") {
     const b = store.get("board." + o.key, null), place = b && b.rank ? ` · #${b.rank} of ${b.players}` : "";
-    return `Guesstimate No. ${o.day} · ${o.total}/500${place}\n${sq}\n${o.results.map((r) => `${MODES[r.mode].name} ${r.pts}`).join(" · ")}`;
+    return `Guesstimate No. ${o.day} · ${o.total}/500${place}\n${sq}\n${o.results.map((r) => `${MODES[r.mode].name} ${r.pts}`).join(" · ")}\nplayguesstimate.com`;
   }
-  return `Guesstimate practice · ${MODES[o.mode].name} · ${o.total}/500\n${sq}\n${o.results.map((r) => r.pts).join(" · ")}`;
+  return `Guesstimate practice · ${MODES[o.mode].name} · ${o.total}/500\n${sq}\n${o.results.map((r) => r.pts).join(" · ")}\nplayguesstimate.com`;
 }
 function finishRun() {
   cur = null;
@@ -1770,6 +1796,13 @@ $("#copyBtn").addEventListener("click", () => {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(() => { note.textContent = "Copied. Paste it anywhere."; }, fallback);
   else fallback();
 });
+// On phones, Share opens the system share sheet (WhatsApp, Messages, Instagram…). No account needed.
+if (navigator.share) {
+  $("#shareBtn").hidden = false;
+  $("#shareBtn").addEventListener("click", async () => {
+    try { await navigator.share({ text: $("#shareText").textContent }); } catch (_) {}
+  });
+}
 $("#resHome").addEventListener("click", showHome);
 
 /* ---------- daily leaderboard ----------
@@ -1854,14 +1887,13 @@ function renderBoard(o) {
     loadBoard(o, ME.username || null);
     return;
   }
-  $("#boardName").value = playerName();
-  const posted = store.get("board." + o.key, null);
-  if (!posted && playerName()) loadBoard(o, playerName());
-  else loadBoard(o, null);
+  // Guests can see the board, but only accounts can post to it.
+  loadBoard(o, null);
 }
 async function loadBoard(o, postAs) {
   const seq = ++boardSeq;
   $("#boardForm").hidden = true;
+  $("#boardJoin").hidden = true;
   boardMsg(postAs ? "Posting your score…" : "Loading today's board…");
   try {
     const data = postAs
@@ -1876,7 +1908,7 @@ async function loadBoard(o, postAs) {
   } catch (err) {
     if (seq !== boardSeq || boardFor !== o) return;
     boardMsg(err.message, true, () => loadBoard(o, postAs));
-    if (postAs) $("#boardForm").hidden = false;
+    if (postAs && ME) $("#boardForm").hidden = false;
   }
 }
 function drawBoard(o, data) {
@@ -1898,7 +1930,7 @@ function drawBoard(o, data) {
     list.appendChild(row(Object.assign({ me: true }, me)));
   }
   const rank = $("#boardRank");
-  if (me) {
+  if (me && ME) {
     store.set("board." + o.key, { rank: me.rank, players });
     const pct = Math.max(1, Math.ceil((me.rank / players) * 100));
     rank.innerHTML = "";
@@ -1910,10 +1942,15 @@ function drawBoard(o, data) {
     boardMsg(`Everyone gets puzzle No. ${o.day} on their own ${prettyDate()}. Ranks keep moving until midnight in the last time zone.`);
   } else {
     rank.hidden = true;
-    $("#boardForm").hidden = false;
-    $("#boardNameLabel").textContent = ME ? "Choose the name for your account" : "Your name on the board";
-    $("#boardSignIn").hidden = !AUTH_READY || !!ME;
-    boardMsg(players ? "" : "No scores yet today. Be the first on the board.");
+    if (ME) {
+      // Signed in but no name yet: choosing one posts the score.
+      $("#boardForm").hidden = false;
+      $("#boardNameLabel").textContent = "Choose the name for your account";
+      boardMsg(players ? "" : "No scores yet today. Be the first on the board.");
+    } else {
+      $("#boardJoin").hidden = !AUTH_READY;
+      boardMsg(!AUTH_READY ? "" : players ? "" : "No scores yet today. Sign in and be the first on the board.");
+    }
   }
 }
 $("#boardForm").addEventListener("submit", async (e) => {
@@ -1922,16 +1959,14 @@ $("#boardForm").addEventListener("submit", async (e) => {
   const v = $("#boardName").value.trim().replace(/\s+/g, " ");
   if (v.length < 2 || v.length > 16) { boardMsg("Use a name of 2 to 16 characters.", true); $("#boardName").focus(); return; }
   try { $("#boardName").blur(); } catch (_) {}
-  if (ME) {
-    try { await rpc("set_username", { p_name: v }); ME.username = v; renderAccountBits(); }
-    catch (err) { boardMsg(err.message, true); return; }
-  } else {
-    NAME = v; store.set("name", v);
-  }
+  if (!ME) { renderBoard(boardFor); return; }
+  try { await rpc("set_username", { p_name: v }); ME.username = v; renderAccountBits(); }
+  catch (err) { boardMsg(err.message, true); return; }
   loadBoard(boardFor, v);
 });
-$("#boardRefresh").addEventListener("click", () => { if (boardFor) loadBoard(boardFor, null); });
-$("#boardSignIn").addEventListener("click", () => openAccount("signin"));
+$("#boardRefresh").addEventListener("click", () => { if (boardFor) renderBoard(boardFor); });
+$("#joinCreate").addEventListener("click", () => openAccount("create"));
+$("#joinSignIn").addEventListener("click", () => openAccount("signin"));
 
 /* ---------- accounts (Supabase Auth) ----------
    Players can create an account, sign in, or keep playing as a guest.
@@ -2069,6 +2104,7 @@ function renderAuthForm() {
   $("#tabCreate").setAttribute("aria-selected", String(create));
   $("#tabSignIn").setAttribute("aria-selected", String(!create));
   $("#fName").hidden = !create;
+  $("#fNews").hidden = !create;
   $("#aPass").setAttribute("autocomplete", create ? "new-password" : "current-password");
   $("#authSubmit").textContent = create ? "Create account" : "Sign in";
   $("#forgotBtn").hidden = create;
@@ -2083,6 +2119,7 @@ function renderMe() {
   $("#meB").textContent = ME.best || "–";
   $("#newNameLabel").textContent = ME.username ? "Change your name" : "Choose the name shown on the leaderboard";
   $("#newName").value = ME.username || "";
+  $("#meNews").checked = !!ME.news;
 }
 async function handleAuth(e) {
   e.preventDefault();
@@ -2101,7 +2138,7 @@ async function handleAuth(e) {
     if (create) {
       say("#authMsg", "Creating your account…");
       if (await rpc("name_taken", { p_name: name })) { afterSignIn = false; return say("#authMsg", "That name is taken. Try another.", true); }
-      const { data, error } = await c.auth.signUp({ email, password: pass, options: { data: { username: name }, emailRedirectTo: HERE } });
+      const { data, error } = await c.auth.signUp({ email, password: pass, options: { data: { username: name, news: $("#aNews").checked }, emailRedirectTo: HERE } });
       if (error) { afterSignIn = false; return say("#authMsg", authError(error), true); }
       if (!data.session) { afterSignIn = false; return say("#authMsg", "Almost done. Open the link we just emailed you to confirm your account."); }
       say("#authMsg", "");
@@ -2187,6 +2224,17 @@ $("#nameForm").addEventListener("submit", async (e) => {
     renderMe(); renderAccountBits();
     say("#meMsg", "Saved. Your scores now show this name.");
   } catch (err) { say("#meMsg", err.message, true); }
+});
+$("#meNews").addEventListener("change", async (e) => {
+  const on = e.target.checked;
+  try {
+    await rpc("set_news", { p_on: on });
+    if (ME) ME.news = on;
+    say("#meMsg", on ? "Thanks! We'll email you now and then. Untick this any time." : "Done. We won't send you news emails.");
+  } catch (err) {
+    e.target.checked = !on;
+    say("#meMsg", "That didn't save. Try again in a minute.", true);
+  }
 });
 $("#resetForm").addEventListener("submit", async (e) => {
   e.preventDefault();
