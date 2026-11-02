@@ -311,6 +311,31 @@ begin
 end;
 $$;
 
+-- For you only, in the SQL Editor: delete someone's account when they ask by email.
+--   select public.admin_delete_account('someone@example.com');
+-- Removes the login, the profile and every score. The website can't call this.
+create or replace function public.admin_delete_account(p_email text)
+returns text
+language plpgsql
+security definer
+set search_path = public, pg_temp
+as $$
+declare
+  v_uid uuid;
+  v_n   int;
+begin
+  select id into v_uid from auth.users where lower(email) = lower(btrim(coalesce(p_email, ''))) limit 1;
+  if v_uid is null then
+    return 'No account uses ' || coalesce(p_email, '(empty)') || '. Nothing was deleted.';
+  end if;
+  delete from public.daily_scores where player_id = v_uid;
+  get diagnostics v_n = row_count;
+  delete from public.profiles where id = v_uid;
+  delete from auth.users where id = v_uid;
+  return 'Deleted the account for ' || p_email || ' and its ' || v_n || ' scores.';
+end;
+$$;
+
 -- ---------- who may call what ----------
 
 revoke all on function public.handle_new_user() from public, anon, authenticated;
@@ -322,6 +347,7 @@ revoke all on function public.set_username(text) from public;
 revoke all on function public.claim_guest(uuid) from public;
 revoke all on function public.set_news(boolean) from public;
 revoke all on function public.delete_my_account() from public;
+revoke all on function public.admin_delete_account(text) from public, anon, authenticated;
 grant execute on function public.day_board(date, uuid, int) to anon, authenticated;
 grant execute on function public.submit_score(date, uuid, text, int[], jsonb) to anon, authenticated;
 grant execute on function public.name_taken(text) to anon, authenticated;
@@ -335,5 +361,5 @@ grant execute on function public.delete_my_account() to authenticated;
 -- row, or run for example:
 --   delete from public.daily_scores where day = '2026-10-27' and name = 'Bad name';
 -- To rename an account, edit its row in Table Editor > profiles.
--- To delete an account for someone who asks by email, delete it under Authentication > Users,
--- then run: delete from public.daily_scores where player_id = '<their user id>';
+-- To delete an account for someone who asks by email, run:
+--   select public.admin_delete_account('their@email.com');

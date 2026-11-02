@@ -143,6 +143,14 @@ h1, h2, h3, p { margin: 0; }
   color: var(--ink-2); font: 600 14px/1 var(--font-body); cursor: pointer;
 }
 
+.ghost.back {
+  display: inline-flex; align-items: center; gap: 6px; align-self: flex-start;
+  min-height: 40px; padding: 0 16px 0 12px; border-radius: 999px;
+  background: color-mix(in srgb, var(--liquid) 14%, transparent); color: var(--liquid-deep);
+  font: 700 15px/1 var(--font-body);
+}
+.ghost.back:hover { background: color-mix(in srgb, var(--liquid) 22%, transparent); }
+
 /* Home */
 .brandbar { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
 @property --lvl { syntax: "<percentage>"; inherits: false; initial-value: 44%; }
@@ -502,7 +510,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
   <!-- PLAY -->
   <section id="play" class="screen" hidden>
     <div class="playbar">
-      <button class="ghost" id="quitBtn" type="button">← Home</button>
+      <button class="ghost back" id="quitBtn" type="button">← Home</button>
       <div class="pips" id="pips" aria-hidden="true"></div>
       <div class="tally">Score<b id="tally">0</b></div>
     </div>
@@ -573,13 +581,13 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
     <div class="btn-row">
       <button class="btn primary" id="againBtn" type="button"></button>
     </div>
-    <button class="ghost" id="resHome" type="button">← Home</button>
+    <button class="ghost back" id="resHome" type="button">← Home</button>
     <p class="fine" id="resNext" hidden>Next daily five in <span class="nextIn">--:--:--</span>.</p>
   </section>
 
   <!-- ACCOUNT -->
   <section id="account" class="screen" hidden>
-    <div class="playbar"><button class="ghost" id="acctBack" type="button">← Back</button></div>
+    <div class="playbar"><button class="ghost back" id="acctBack" type="button">← Back</button></div>
 
     <div class="acct-pane" id="acctOut">
       <h2 class="acct-title" id="acctTitle">Create an account</h2>
@@ -2077,6 +2085,49 @@ let authMode = "create", acctReturn = "home", afterSignIn = false;
 let recoveryLink = /type=recovery/.test(location.hash);
 // Coming back from "Continue with Google": the sign-in details arrive in the address.
 let oauthReturn = /access_token=/.test(location.hash) && !recoveryLink;
+// Google sign-in goes straight to Google and comes back to this site with an ID token, so
+// Google's screen names playguesstimate.com rather than the database's address.
+let googleReturn = null;
+(function readGoogleReturn() {
+  const h = new URLSearchParams(location.hash.replace(/^#/, ""));
+  const state = h.get("state");
+  if (!state) return;
+  let saved = null;
+  try { saved = JSON.parse(sessionStorage.getItem("gst.google") || "null"); sessionStorage.removeItem("gst.google"); } catch (_) {}
+  if (!saved || saved.state !== state) return;
+  googleReturn = { token: h.get("id_token"), error: h.get("error"), nonce: saved.nonce, back: saved.back };
+  oauthReturn = !!googleReturn.token;
+  try { history.replaceState(null, "", location.pathname + location.search); } catch (_) {}
+})();
+function randomString() {
+  const a = new Uint8Array(24); crypto.getRandomValues(a);
+  return Array.from(a, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function sha256hex(t) {
+  const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(t));
+  return Array.from(new Uint8Array(d), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+async function startGoogle() {
+  const nonce = randomString(), state = randomString();
+  const back = acctReturn === "results" && boardFor && boardFor.kind === "daily" ? "daily" : "";
+  try { sessionStorage.setItem("gst.google", JSON.stringify({ state, nonce, back })); } catch (_) { return false; }
+  const q = new URLSearchParams({
+    client_id: BOARD.google, redirect_uri: location.origin + location.pathname,
+    response_type: "id_token", scope: "openid email profile",
+    nonce: await sha256hex(nonce), state, prompt: "select_account"
+  });
+  location.assign("https://accounts.google.com/o/oauth2/v2/auth?" + q.toString());
+  return true;
+}
+async function finishGoogle(c) {
+  const g = googleReturn; googleReturn = null;
+  if (!g) return;
+  if (!g.token) { if (g.error && g.error !== "access_denied") { openAccount("signin"); say("#authMsg", "Google sign-in didn't work. Try again.", true); } return; }
+  pendingBack = g.back;
+  const { error } = await c.auth.signInWithIdToken({ provider: "google", token: g.token, nonce: g.nonce });
+  if (error) { oauthReturn = false; pendingBack = ""; openAccount("signin"); say("#authMsg", authError(error), true); }
+}
+let pendingBack = "";
 const sbLoaded = new Promise((res) => {
   if (window.supabase) return res(true);
   const s = document.getElementById("sbjs");
@@ -2116,6 +2167,7 @@ async function initAccounts() {
   renderAccountBits();
   early.forEach(([ev, s]) => setTimeout(() => onAuth(ev, s), 0));
   early = [];
+  finishGoogle(c);
   fetch(BOARD.url.replace(/\/+$/, "") + "/auth/v1/settings", { headers: { apikey: BOARD.key } })
     .then((r) => r.json())
     .then((s) => { GOOGLE = !!(s && s.external && s.external.google); renderAuthForm(); })
@@ -2144,6 +2196,10 @@ async function onAuth(event, session) {
   await loadMe(session);
   if (oauthReturn) {
     oauthReturn = false;
+    // Started from the results screen: go back there, which posts today's score.
+    const back = pendingBack; pendingBack = "";
+    const done = back === "daily" ? store.get("daily." + todayKey(), null) : null;
+    if (done) { renderResults(done, false); if (ME && ME.username) return; }
     // A new Google account has no leaderboard name yet, so ask for one right away.
     if (ME && !ME.username) { authMode = "create"; openAccount(); say("#meMsg", "Welcome! Choose the name other players will see on the leaderboard."); $("#newName").focus(); return; }
   }
@@ -2272,9 +2328,10 @@ $("#forgotBtn").addEventListener("click", async () => {
   say("#authMsg", error ? authError(error) : "If that email has an account, a reset link is on its way.", !!error);
 });
 $("#googleBtn").addEventListener("click", async () => {
+  if (BOARD.google && window.crypto && crypto.subtle && (await startGoogle())) return;
   const c = await sb();
   if (!c) return;
-  const { error } = await c.auth.signInWithOAuth({ provider: "google", options: { redirectTo: HERE } });
+  const { error } = await c.auth.signInWithOAuth({ provider: "google", options: { redirectTo: HERE, queryParams: { prompt: "select_account" } } });
   if (error) say("#authMsg", authError(error), true);
 });
 $("#signOutBtn").addEventListener("click", async () => {
