@@ -625,6 +625,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
           <label for="aPass">Password</label>
           <input id="aPass" type="password" autocomplete="new-password" minlength="6">
         </div>
+        <p class="acct-note" id="fAge">Accounts are for players aged 16 and over. By creating one you confirm you're at least 16.</p>
         <label class="check" id="fNews"><input id="aNews" type="checkbox"> <span>Get notified when new games come out. Unsubscribe any time.</span></label>
         <button class="btn primary" id="authSubmit" type="submit">Create account</button>
         <button class="ghost" id="forgotBtn" type="button" hidden>Forgot your password?</button>
@@ -1825,6 +1826,8 @@ function shareString(o) {
 }
 function finishRun() {
   cur = null;
+  // Someone who finished a run without an account has chosen to play as a guest; stop showing the welcome card.
+  if (!ME) store.set("guestChosen", true);
   const total = run.results.reduce((a, r) => a + r.pts, 0);
   const o = { kind: run.kind, mode: run.mode, key: run.key, day: run.day, results: run.results, total };
   let newBest = false;
@@ -2324,6 +2327,7 @@ function renderAuthForm() {
   $("#tabSignIn").setAttribute("aria-selected", String(!create));
   $("#fName").hidden = !create;
   $("#fNews").hidden = !create;
+  $("#fAge").hidden = !create;
   $("#aPass").setAttribute("autocomplete", create ? "new-password" : "current-password");
   $("#authSubmit").textContent = create ? "Create account" : "Sign in";
   $("#forgotBtn").hidden = create;
