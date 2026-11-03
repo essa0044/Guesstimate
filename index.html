@@ -404,11 +404,28 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
 
 /* Accounts */
 .acct {
-  appearance: none; max-width: 55%; padding: 8px 14px;
-  border: 1.5px solid var(--rule); border-radius: 999px; background: var(--panel); color: var(--ink);
-  font: 700 13px/1 var(--font-body); cursor: pointer;
-  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  appearance: none; max-width: 60%; display: inline-flex; align-items: center; gap: 7px;
+  min-height: 40px; padding: 0 14px 0 10px;
+  border: 1.5px solid var(--liquid-deep); border-radius: 999px;
+  background: color-mix(in srgb, var(--liquid) 14%, transparent); color: var(--liquid-deep);
+  font: 700 14px/1 var(--font-body); cursor: pointer;
 }
+.acct svg { flex: none; width: 18px; height: 18px; }
+.acct span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.acct:hover { background: color-mix(in srgb, var(--liquid) 24%, transparent); }
+.sheet { position: fixed; inset: 0; z-index: 50; display: flex; align-items: flex-end; justify-content: center; padding: 16px; background: rgb(8 12 22 / 0.55); }
+.sheet[hidden] { display: none; }
+.sheet-card {
+  width: 100%; max-width: 440px; display: flex; flex-direction: column; gap: 12px;
+  padding: 22px 20px calc(20px + env(safe-area-inset-bottom)); border-radius: 16px;
+  background: var(--paper); border: 1.5px solid var(--rule); box-shadow: 0 12px 40px rgb(0 0 0 / 0.3);
+  animation: sheetIn 0.22s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+.sheet-card h2 { font: 850 22px/1.15 var(--font-display); font-stretch: 108%; text-wrap: balance; }
+.sheet-card p { font-size: 15px; line-height: 1.45; color: var(--ink-2); }
+.sheet-card .btn-row { flex-wrap: wrap; }
+@keyframes sheetIn { from { transform: translateY(24px); opacity: 0; } }
+@media (min-width: 600px) { .sheet { align-items: center; } }
 .welcome { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: 6px; background: var(--me-bg); }
 .welcome h2 { font: 850 21px/1.15 var(--font-display); font-stretch: 108%; text-wrap: balance; }
 .welcome p { color: var(--ink-2); font-size: 15px; line-height: 1.45; }
@@ -459,7 +476,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
     <div class="brandbar">
       <span class="eyebrow">Estimation games</span>
       <span class="eyebrow" id="gameCount">9 games · 2 min</span>
-      <button class="acct" id="acctBtn" type="button" hidden>Sign in</button>
+      <button class="acct" id="acctBtn" type="button" hidden aria-label="Sign in"><span>Sign in</span></button>
     </div>
     <h1 class="wordmark">guesstimate<span class="vh">: the daily estimation game</span></h1>
     <p class="tagline">Quick tests of how well you judge volume, numbers, space, time and color.</p>
@@ -663,6 +680,16 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
       <p class="board-msg" id="resetMsg" aria-live="polite"></p>
     </div>
   </section>
+</div>
+<div class="sheet" id="newsSheet" hidden>
+  <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="newsSheetHead">
+    <h2 id="newsSheetHead">Get notified when new games come out?</h2>
+    <p>One email when there's something new. Unsubscribe any time.</p>
+    <div class="btn-row">
+      <button class="btn primary" id="sheetYes" type="button">Notify me</button>
+      <button class="btn" id="sheetNo" type="button">No thanks</button>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -2042,14 +2069,21 @@ $("#boardForm").addEventListener("submit", async (e) => {
 /* Ask signed-in players about news emails after they land on the board.
    At most twice per account on this device, at least 14 days apart, and never once they've said yes. */
 function newsAskKey() { return "newsAsk." + ((ME && ME.email) || ""); }
+// May we ask now? Counts the ask when it says yes. Shared by the board prompt and the pop-up.
+function takeNewsAsk() {
+  if (!ME || ME.news || !AUTH_READY) return false;
+  const a = store.get(newsAskKey(), { n: 0, at: 0, day: "" });
+  if (a.n >= 2 || a.done || (a.at && Date.now() - a.at < 14 * 864e5)) return false;
+  store.set(newsAskKey(), { n: a.n + 1, at: Date.now(), day: todayKey() });
+  return true;
+}
 function maybeAskNews() {
   const box = $("#newsAsk");
   box.hidden = true;
   if (!ME || ME.news || !AUTH_READY) return;
   const a = store.get(newsAskKey(), { n: 0, at: 0, day: "" });
   if (a.day === todayKey()) { box.hidden = false; return; }   // keep showing on the same day it was shown
-  if (a.n >= 2 || a.done || (a.at && Date.now() - a.at < 14 * 864e5)) return;
-  store.set(newsAskKey(), { n: a.n + 1, at: Date.now(), day: todayKey() });
+  if (!takeNewsAsk()) return;
   $("#newsAskBtns").hidden = false;
   box.querySelector("p").innerHTML = "<b>Want a heads-up when new games come out?</b> One email when there's something new. Unsubscribe any time.";
   box.hidden = false;
@@ -2066,6 +2100,27 @@ $("#newsYes").addEventListener("click", async () => {
     p.textContent = "That didn't save. Try again in a minute.";
   }
 });
+function openNewsSheet() {
+  $("#newsSheet").hidden = false;
+  $("#sheetYes").focus();
+}
+function closeNewsSheet() {
+  $("#newsSheet").hidden = true;
+  const a = store.get(newsAskKey(), null);
+  if (a) { a.day = ""; store.set(newsAskKey(), a); }
+}
+$("#sheetYes").addEventListener("click", async () => {
+  try {
+    await rpc("set_news", { p_on: true });
+    if (ME) ME.news = true;
+    $("#meNews").checked = true;
+    say("#meMsg", "Done! We'll email you when new games come out.");
+  } catch (_) { say("#meMsg", "That didn't save. Try the checkbox below in a minute.", true); }
+  closeNewsSheet();
+});
+$("#sheetNo").addEventListener("click", closeNewsSheet);
+$("#newsSheet").addEventListener("click", (e) => { if (e.target === e.currentTarget) closeNewsSheet(); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && !$("#newsSheet").hidden) closeNewsSheet(); });
 $("#newsNo").addEventListener("click", () => {
   const a = store.get(newsAskKey(), { n: 1, at: Date.now() });
   a.day = ""; store.set(newsAskKey(), a);
@@ -2234,7 +2289,16 @@ function syncToday(t) {
 function renderAccountBits() {
   $("#acctBtn").hidden = !AUTH_READY;
   $("#gameCount").hidden = AUTH_READY;
-  if (AUTH_READY) $("#acctBtn").textContent = ME ? (ME.username || "Your account") : "Sign in";
+  if (AUTH_READY) {
+    const b = $("#acctBtn"), label = ME ? (ME.username || "Your account") : "Sign in";
+    // A person icon when signed out, a gear when signed in, so the name reads as "your account settings".
+    const icon = ME
+      ? '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg>'
+      : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>';
+    b.innerHTML = icon + "<span></span>";
+    b.querySelector("span").textContent = label;
+    b.setAttribute("aria-label", ME ? `Account settings for ${label}` : "Sign in");
+  }
   $("#welcome").hidden = !AUTH_READY || !!ME || store.get("guestChosen", false);
 }
 function openAccount(mode) {
@@ -2379,6 +2443,7 @@ $("#nameForm").addEventListener("submit", async (e) => {
     ME.username = v;
     renderMe(); renderAccountBits();
     say("#meMsg", "Saved. Your scores now show this name.");
+    if (takeNewsAsk()) setTimeout(openNewsSheet, 350);
   } catch (err) { say("#meMsg", err.message, true); }
 });
 $("#meNews").addEventListener("change", async (e) => {
