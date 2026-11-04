@@ -601,6 +601,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
       <pre id="shareText"></pre>
       <div class="btn-row">
         <button class="btn" id="shareBtn" type="button" hidden>Share</button>
+        <button class="btn" id="saveImgBtn" type="button" hidden>Save image</button>
         <button class="btn" id="copyBtn" type="button">Copy result</button>
       </div>
       <p class="copy-note" id="copyNote" role="status"></p>
@@ -1834,6 +1835,99 @@ function shareString(o) {
   }
   return `Guesstimate practice · ${MODES[o.mode].name} · ${o.total}/500\n${sq}\n${o.results.map((r) => r.pts).join(" · ")}\nhttps://playguesstimate.com`;
 }
+/* ---------- share picture ----------
+   A 1080 x 1350 picture of the result (fits WhatsApp, Instagram feed and Stories). It's drawn as
+   soon as the results show, so tapping Share can hand it straight to the phone's share sheet. */
+const CARD = { paper: "#ECF0F4", grid: "#E2E8EE", panel: "#F8FAFC", ink: "#152238", ink2: "#56647A", rule: "#CDD6E0",
+  pink: "#EE3F6B", deep: "#B91F4A", good: "#14845A", mid: "#B07A0A", off: "#7B879A", track: "#DCE3EA" };
+let shareFile = null, shareSeq = 0;
+function cardIcon(svg) {
+  return new Promise((res) => {
+    const img = new Image();
+    img.onload = () => res(img); img.onerror = () => res(null);
+    const s = svg.replace(/currentColor/g, CARD.ink).replace(/var\(--liquid\)/g, CARD.pink).replace("<svg ", '<svg xmlns="http://www.w3.org/2000/svg" width="96" height="96" ');
+    img.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(s);
+  });
+}
+function cardWordmark(g, x, y, size) {
+  g.font = `900 ${size}px Archivo, sans-serif`;
+  g.textBaseline = "alphabetic"; g.textAlign = "left";
+  const w = g.measureText("guesstimate").width;
+  g.fillStyle = CARD.ink; g.fillText("guesstimate", x, y);
+  g.save(); g.beginPath(); g.rect(x - 4, y - size * 0.3, w + 8, size); g.clip();
+  g.fillStyle = CARD.pink; g.fillText("guesstimate", x, y); g.restore();
+}
+async function buildShareCard(o) {
+  const seq = ++shareSeq;
+  shareFile = null; updateShareButtons();
+  try { await Promise.all(["900 100px Archivo", "800 40px Archivo", "500 30px Figtree", "700 30px Figtree", "600 30px 'Azeret Mono'"].map((f) => document.fonts.load(f))); } catch (_) {}
+  const W = 1080, H = 1350, P = 84;
+  const c = document.createElement("canvas"); c.width = W; c.height = H;
+  const g = c.getContext("2d");
+  g.fillStyle = CARD.paper; g.fillRect(0, 0, W, H);
+  g.strokeStyle = CARD.grid; g.lineWidth = 2;
+  for (let v = 54; v < Math.max(W, H); v += 54) { g.beginPath(); g.moveTo(v, 0); g.lineTo(v, H); g.moveTo(0, v); g.lineTo(W, v); g.stroke(); }
+
+  cardWordmark(g, P, 150, 88);
+  const daily = o.kind === "daily";
+  g.font = "600 28px 'Azeret Mono', monospace"; g.fillStyle = CARD.ink2;
+  if ("letterSpacing" in g) g.letterSpacing = "4px";
+  g.fillText((daily ? `DAILY No. ${o.day} · ${prettyDate()}` : `PRACTICE · ${MODES[o.mode].name}`).toUpperCase(), P, 212);
+  if ("letterSpacing" in g) g.letterSpacing = "0px";
+
+  // Score
+  g.font = "900 200px Archivo, sans-serif"; g.fillStyle = CARD.ink;
+  g.fillText(String(o.total), P - 6, 410);
+  const sw = g.measureText(String(o.total)).width;
+  g.font = "700 58px Figtree, sans-serif"; g.fillStyle = CARD.ink2;
+  g.fillText("/500", P + sw + 6, 410);
+  g.font = "800 50px Archivo, sans-serif"; g.fillStyle = CARD.ink;
+  g.fillText(overall(o.total)[0], P, 484);
+
+  // Rounds
+  const icons = await Promise.all(o.results.map((r) => cardIcon(ICONS[r.mode])));
+  const top = 552, rowH = 100, color = { good: CARD.good, mid: CARD.mid, off: CARD.off };
+  g.fillStyle = CARD.ink; g.fillRect(P, top - 14, W - 2 * P, 3);
+  o.results.forEach((r, i) => {
+    const y = top + i * rowH;
+    if (icons[i]) g.drawImage(icons[i], P, y + 14, 54, 54);
+    g.font = "800 42px Archivo, sans-serif"; g.fillStyle = CARD.ink; g.textAlign = "left";
+    g.fillText(daily ? MODES[r.mode].name : `Round ${i + 1}`, P + 80, y + 52);
+    g.font = "600 46px 'Azeret Mono', monospace"; g.textAlign = "right";
+    g.fillText(String(r.pts), W - P, y + 54);
+    g.textAlign = "left";
+    const bx = P + 80, bw = W - 2 * P - 80 - 120, by = y + 74;
+    g.fillStyle = CARD.track; g.beginPath(); g.roundRect(bx, by, bw, 14, 7); g.fill();
+    g.fillStyle = color[tier(r.pts)]; g.beginPath(); g.roundRect(bx, by, Math.max(14, bw * r.pts / 100), 14, 7); g.fill();
+  });
+
+  // Rank, then the invitation
+  const placed = daily ? store.get("board." + o.key, null) : null;
+  if (placed && placed.rank) {
+    g.font = "700 38px Figtree, sans-serif"; g.fillStyle = CARD.ink;
+    g.fillText(`#${placed.rank} of ${placed.players} on today's leaderboard`, P, top + 5 * rowH + 44);
+  }
+  const fy = H - 84 - 140;
+  g.fillStyle = CARD.ink; g.beginPath(); g.roundRect(P, fy, W - 2 * P, 140, 28); g.fill();
+  g.font = "800 44px Archivo, sans-serif"; g.fillStyle = "#FFFFFF"; g.textAlign = "left";
+  g.fillText("How good is your eye?", P + 44, fy + 62);
+  g.font = "600 34px 'Azeret Mono', monospace"; g.fillStyle = "#FF9BB3";
+  g.fillText("Play at playguesstimate.com", P + 44, fy + 110);
+
+  const blob = await new Promise((res) => { try { c.toBlob(res, "image/png"); } catch (_) { res(null); } });
+  if (seq !== shareSeq || !blob) return;
+  shareFile = new File([blob], daily ? `guesstimate-no-${o.day}.png` : `guesstimate-${o.mode}.png`, { type: "image/png" });
+  updateShareButtons();
+}
+function canShareFile() {
+  try { return !!(shareFile && navigator.canShare && navigator.canShare({ files: [shareFile] })); } catch (_) { return false; }
+}
+function updateShareButtons() {
+  const files = canShareFile();
+  $("#shareBtn").hidden = !navigator.share;
+  // Where the share sheet can't take pictures (most computers), offer a download instead.
+  $("#saveImgBtn").hidden = !shareFile || files;
+}
 function finishRun() {
   cur = null;
   // Someone who finished a run without an account has chosen to play as a guest; stop showing the welcome card.
@@ -1877,6 +1971,7 @@ function renderResults(o, newBest) {
     </li>`).join("");
   $("#shareText").textContent = shareString(o);
   $("#copyNote").textContent = "";
+  buildShareCard(o);
   countUp($("#resTotal"), o.total);
   renderBoard(o);
   const again = $("#againBtn");
@@ -1913,9 +2008,23 @@ $("#copyBtn").addEventListener("click", () => {
 if (navigator.share) {
   $("#shareBtn").hidden = false;
   $("#shareBtn").addEventListener("click", async () => {
-    try { await navigator.share({ text: $("#shareText").textContent }); } catch (_) {}
+    const text = $("#shareText").textContent;
+    try {
+      if (canShareFile()) await navigator.share({ files: [shareFile], text });
+      else await navigator.share({ text });
+    } catch (e) {
+      // Some apps refuse a picture with text; try the picture alone.
+      if (e && e.name !== "AbortError" && canShareFile()) { try { await navigator.share({ files: [shareFile] }); } catch (_) {} }
+    }
   });
 }
+$("#saveImgBtn").addEventListener("click", () => {
+  if (!shareFile) return;
+  const a = document.createElement("a"), url = URL.createObjectURL(shareFile);
+  a.href = url; a.download = shareFile.name; document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 4000);
+  $("#copyNote").textContent = "Image saved. Post it anywhere.";
+});
 $("#resHome").addEventListener("click", showHome);
 
 /* ---------- daily leaderboard ----------
@@ -2053,6 +2162,7 @@ function drawBoard(o, data) {
     rank.hidden = false;
     $("#boardForm").hidden = true;
     $("#shareText").textContent = shareString(o);
+    buildShareCard(o); // now with the rank
     boardMsg("Everyone plays the same puzzle today, so ranks change as more people finish. New puzzle at midnight.");
     maybeAskNews();
   } else {
