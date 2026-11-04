@@ -9,7 +9,7 @@
 <meta name="theme-color" content="#0D1524" media="(prefers-color-scheme: dark)">
 <meta property="og:site_name" content="Guesstimate">
 <meta property="og:title" content="Guesstimate · How good is your eye?">
-<meta property="og:description" content="A free daily estimation game. Five quick rounds, about 2 minutes: guess how full a glass is, count flashing dots, stop a hidden timer. Same puzzles for everyone.">
+<meta property="og:description" content="Five quick estimation games, new every day. Free, 2 minutes.">
 <meta property="og:type" content="website">
 <meta property="og:locale" content="en_US">
 <meta property="og:url" content="https://playguesstimate.com/">
@@ -21,7 +21,7 @@
 <meta property="og:image:alt" content="Guesstimate: How good is your eye? A glass with a 38% guess.">
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="Guesstimate · How good is your eye?">
-<meta name="twitter:description" content="A free daily estimation game. Five quick rounds, about 2 minutes. Same puzzles for everyone.">
+<meta name="twitter:description" content="Five quick estimation games, new every day. Free, 2 minutes.">
 <meta name="twitter:image" content="https://playguesstimate.com/og-image.png">
 <meta name="twitter:image:alt" content="Guesstimate: How good is your eye? A glass with a 38% guess.">
 <meta name="theme-color" content="#0D1524" media="(prefers-color-scheme: dark)">
@@ -1830,9 +1830,9 @@ function shareString(o) {
   const sq = o.results.map((r) => (r.pts >= 80 ? "🟩" : r.pts >= 50 ? "🟨" : "🟥")).join("");
   if (o.kind === "daily") {
     const b = store.get("board." + o.key, null), place = b && b.rank ? ` · #${b.rank} of ${b.players}` : "";
-    return `Guesstimate No. ${o.day} · ${o.total}/500${place}\n${sq}\n${o.results.map((r) => `${MODES[r.mode].name} ${r.pts}`).join(" · ")}\nplayguesstimate.com`;
+    return `Guesstimate No. ${o.day} · ${o.total}/500${place}\n${sq}\n${o.results.map((r) => `${MODES[r.mode].name} ${r.pts}`).join(" · ")}\nhttps://playguesstimate.com`;
   }
-  return `Guesstimate practice · ${MODES[o.mode].name} · ${o.total}/500\n${sq}\n${o.results.map((r) => r.pts).join(" · ")}\nplayguesstimate.com`;
+  return `Guesstimate practice · ${MODES[o.mode].name} · ${o.total}/500\n${sq}\n${o.results.map((r) => r.pts).join(" · ")}\nhttps://playguesstimate.com`;
 }
 function finishRun() {
   cur = null;
