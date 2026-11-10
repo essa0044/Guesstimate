@@ -211,24 +211,60 @@ h1, h2, h3, p { margin: 0; }
 .fine { font-size: 13px; color: var(--ink-2); }
 .fine .nextIn { font-family: var(--font-mono); font-variant-numeric: tabular-nums; color: var(--ink); }
 
-.practice { display: flex; flex-direction: column; gap: 8px; }
-.modes { list-style: none; margin: 0; padding: 0; border-top: 1.5px solid var(--ink); }
+/* Week strip: the last seven days, filled when played */
+.week { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding-top: 14px; border-top: 1px solid var(--rule); }
+.week-days { list-style: none; margin: 0; padding: 0; display: flex; gap: 7px; }
+.week-days li { display: flex; flex-direction: column; align-items: center; gap: 5px; font: 500 11px/1 var(--font-mono); color: var(--ink-2); }
+.week-days i { width: 22px; height: 22px; border-radius: 50%; border: 1.5px solid var(--rule); }
+.week-days li[data-on="true"] i { background: var(--liquid); border-color: var(--liquid); }
+.week-days li[data-today="true"] { color: var(--ink); font-weight: 700; }
+.week-days li[data-today="true"] i { outline: 1.5px solid var(--ink); outline-offset: 2px; }
+.week-streak { font-size: 13px; line-height: 1.35; color: var(--ink-2); text-align: right; }
+.week-streak b { display: block; color: var(--ink); }
+
+/* Progress: totals and skill bars */
+.progress { display: flex; flex-direction: column; gap: 18px; }
+.sec-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; }
+.skills { display: flex; flex-direction: column; gap: 10px; }
+.skill-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.skill-list li { display: grid; grid-template-columns: 5.2em minmax(0, 1fr) 2.4em; gap: 12px; align-items: center; }
+.skill-list .sk-name { font: 700 15px/1.2 var(--font-body); }
+.skill-list .bar { height: 8px; margin: 0; border-radius: 4px; }
+.skill-list b { font: 700 16px/1 var(--font-mono); text-align: right; font-variant-numeric: tabular-nums; }
+.skill-list b[data-empty="true"] { color: var(--ink-2); font-weight: 500; }
+.skill-tip { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: 14px; color: var(--ink-2); }
+.skill-tip b { color: var(--ink); }
+.btn.small { width: auto; min-height: 40px; padding: 10px 16px; font-size: 14px; }
+
+/* Games: tiles grouped by skill */
+.practice { display: flex; flex-direction: column; gap: 22px; }
+.skill-group { display: flex; flex-direction: column; gap: 10px; }
+.skill-head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; padding-top: 12px; border-top: 1.5px solid var(--ink); }
+.skill-head h3 { font: 850 20px/1.1 var(--font-display); font-stretch: 110%; }
+.skill-head span { font: 500 12px/1.3 var(--font-mono); color: var(--ink-2); text-align: right; }
+.tiles { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.tiles li { display: grid; }
+.tiles li:last-child:nth-child(odd) { grid-column: span 2; }
 .mode-btn {
-  display: grid; grid-template-columns: 42px minmax(0, 1fr) auto; align-items: center; gap: 14px;
-  width: 100%; padding: 14px 2px;
-  background: none; border: 0; border-bottom: 1px solid var(--rule);
+  display: flex; flex-direction: column; gap: 8px;
+  width: 100%; padding: 12px 12px 14px;
+  background: var(--panel); border: 1.5px solid var(--rule); border-radius: 10px;
   color: var(--ink); text-align: left; font: inherit; cursor: pointer;
+  transition: border-color 0.15s ease, transform 0.12s ease;
 }
-.mode-btn:hover .mode-name { color: var(--liquid-deep); }
+.mode-btn:hover { border-color: var(--ink); }
+.mode-btn:active { transform: translateY(1px); }
+.mode-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; min-height: 40px; }
 .mode-ico {
-  width: 42px; height: 42px; display: grid; place-items: center;
-  border-radius: 10px; background: var(--panel); border: 1px solid var(--rule);
+  width: 40px; height: 40px; flex: none; display: grid; place-items: center;
+  border-radius: 10px; background: var(--paper); border: 1px solid var(--rule);
 }
 .mode-ico svg { width: 24px; height: 24px; }
-.mode-name { display: block; font: 800 18px/1.15 var(--font-display); font-stretch: 110%; transition: color 0.15s; }
-.mode-blurb { display: block; font-size: 14px; line-height: 1.35; color: var(--ink-2); }
-.mode-best { font: 600 12px/1.3 var(--font-mono); color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; }
-.mode-best b { display: block; font-size: 16px; color: var(--ink); }
+.mode-name { display: block; font: 800 18px/1.15 var(--font-display); font-stretch: 110%; }
+.mode-blurb { display: block; font-size: 13px; line-height: 1.35; color: var(--ink-2); text-wrap: pretty; }
+.mode-best { font: 600 11px/1.3 var(--font-mono); color: var(--ink-2); text-align: right; font-variant-numeric: tabular-nums; text-transform: uppercase; letter-spacing: 0.08em; }
+.mode-best b { display: block; font-size: 16px; letter-spacing: 0; color: var(--ink); }
+.pill-new { padding: 5px 8px; border-radius: 999px; background: var(--btn-bg); color: var(--btn-fg); font: 700 10px/1 var(--font-mono); text-transform: uppercase; letter-spacing: 0.1em; }
 
 .stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; margin: 0; }
 .stats div { border-top: 1.5px solid var(--rule); padding-top: 8px; }
@@ -475,7 +511,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
 
 @media (prefers-reduced-motion: reduce) {
   .wordmark, .bar i { animation: none; }
-  .btn, .hold, .pip { transition: none; }
+  .btn, .hold, .pip, .mode-btn { transition: none; }
 }
 </style>
 </head>
@@ -485,11 +521,11 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
   <section id="home" class="screen">
     <div class="brandbar">
       <span class="eyebrow">Estimation games</span>
-      <span class="eyebrow" id="gameCount">9 games · 2 min</span>
+      <span class="eyebrow" id="gameCount">13 games · 2 min</span>
       <button class="acct" id="acctBtn" type="button" hidden aria-label="Sign in"><span>Sign in</span></button>
     </div>
     <h1 class="wordmark">guesstimate<span class="vh">: the daily estimation game</span></h1>
-    <p class="tagline">Quick tests of how well you judge volume, numbers, space, time and color.</p>
+    <p class="tagline">Quick tests of your eye for space, numbers, timing and memory.</p>
 
     <div class="welcome" id="welcome" hidden>
       <h2>Play as a guest or make an account</h2>
@@ -514,22 +550,33 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
       <p class="fine" id="dpRank" hidden></p>
       <button class="btn primary" id="playDaily" type="button">Play today's five</button>
       <p class="fine" id="dailyFine">Same five for everyone today. New set in <span class="nextIn">--:--:--</span>.</p>
+      <div class="week">
+        <ol class="week-days" id="weekDays" aria-label="Days played in the last week"></ol>
+        <p class="week-streak" id="weekStreak"></p>
+      </div>
     </div>
+
+    <section class="progress" id="progress" hidden aria-label="Your progress">
+      <dl class="stats">
+        <div><dt>Played</dt><dd id="stPlayed">0</dd></div>
+        <div><dt>Streak</dt><dd id="stStreak">0</dd></div>
+        <div><dt>Best day</dt><dd id="stBest">–</dd></div>
+      </dl>
+      <div class="skills" id="skills" hidden>
+        <div class="sec-head"><h2 class="eyebrow">Your skills</h2><span class="fine">average of your recent rounds</span></div>
+        <ul class="skill-list" id="skillList"></ul>
+        <div class="skill-tip" id="skillTip" hidden><p id="skillTipText"></p><button class="btn small" id="skillTipBtn" type="button"></button></div>
+      </div>
+    </section>
 
     <div class="practice">
-      <h3 class="eyebrow">Practice one skill · 5 rounds</h3>
-      <ul class="modes" id="modeList"></ul>
+      <div class="sec-head"><h2 class="eyebrow">All games</h2><span class="fine">practice any one · 5 rounds</span></div>
+      <div class="practice" id="modeList"></div>
     </div>
-
-    <dl class="stats">
-      <div><dt>Played</dt><dd id="stPlayed">0</dd></div>
-      <div><dt>Streak</dt><dd id="stStreak">0</dd></div>
-      <div><dt>Best day</dt><dd id="stBest">–</dd></div>
-    </dl>
     <section class="about-blurb" aria-labelledby="aboutHead">
       <h2 id="aboutHead">What is Guesstimate?</h2>
-      <p>A free daily estimation game you play in your browser. Every day brings five quick rounds, the same for everyone: guess how full a glass is, count dots that flash past, read an angle by eye, stop a hidden timer right on time, or pick the closer shade of a color.</p>
-      <p>Each round scores up to 100 points for how close you get, so a perfect day is 500. Share your five colored squares with friends, keep your streak going, and sign in to see where you rank on today's leaderboard. It takes about two minutes, with no download.</p>
+      <p>A free daily estimation game you play in your browser. Every day brings five quick rounds, the same for everyone: guess how full a glass is, count dots that flash past, place a number on a blank line, remember a pattern of tiles, or tap the moment a hidden ball arrives.</p>
+      <p>Each round scores up to 100 points for how close you get, so a perfect day is 500. There are 13 games in four skill areas: space, numbers, memory and motion. Share your result with friends, keep your streak going, and sign in to see where you rank on today's leaderboard. It takes about two minutes, with no download.</p>
     </section>
     <nav class="site-links" aria-label="Site"><a href="about">About &amp; how to play</a><a href="privacy">Privacy</a><a href="impressum">Impressum</a></nav>
   </section>
@@ -563,7 +610,7 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
   <section id="results" class="screen" hidden>
     <p class="eyebrow" id="resLabel"></p>
     <div class="bigscore"><span id="resTotal">0</span><span class="of">/500</span></div>
-    <div class="res-verdict"><h2 id="resHead"></h2><p id="resSub"></p></div>
+    <div class="res-verdict"><h2 id="resHead"></h2><p id="resSub"></p><p class="fine" id="resCompare" hidden></p></div>
     <ol class="res-rows" id="resRows"></ol>
     <section class="board" id="board" hidden>
       <div class="board-head">
@@ -709,12 +756,19 @@ dd { margin: 2px 0 0; font: 700 22px/1.2 var(--font-mono); font-variant-numeric:
 "use strict";
 const $ = (s) => document.querySelector(s);
 const W = 400;
-const ORDER = ["pour", "flash", "angle", "center", "hold", "shade", "glimpse", "bounce", "ballpark"];
+const ORDER = ["pour", "flash", "angle", "center", "hold", "shade", "glimpse", "bounce", "ballpark", "grid", "tunnel", "scale", "span"];
 const ROTATING = ["angle", "center", "hold", "shade", "glimpse", "bounce", "ballpark"];
 // New games join the daily rotation from a start date ("YYYY-MM-DD"), so adding one never
 // changes today's puzzles or any earlier day. Add the game to ORDER and MODES, then list it here:
 //   const LATER = { newgame: "2026-12-01" };
-const LATER = {};
+const LATER = { grid: "2026-11-12", tunnel: "2026-11-12", scale: "2026-11-12", span: "2026-11-12" };
+// Skill areas: how the games are grouped on the home screen and in "Your skills".
+const SKILLS = [
+  { id: "space", name: "Space", blurb: "Volume, angles, lengths and centers", modes: ["pour", "angle", "center", "span"] },
+  { id: "numbers", name: "Numbers", blurb: "Counting and quick estimates", modes: ["flash", "ballpark", "scale"] },
+  { id: "memory", name: "Memory", blurb: "Holding what you just saw", modes: ["shade", "glimpse", "grid"] },
+  { id: "motion", name: "Motion", blurb: "Timing and predicting movement", modes: ["hold", "tunnel", "bounce"] }
+];
 function dailyModes(key) {
   const r = mulberry32(hashStr("modes-" + key));
   const pool = ROTATING.concat(Object.keys(LATER).filter((m) => key >= LATER[m]));
@@ -730,6 +784,37 @@ const store = {
   get(k, d) { try { const v = localStorage.getItem("gst." + k); return v == null ? d : JSON.parse(v); } catch (e) { return d; } },
   set(k, v) { try { localStorage.setItem("gst." + k, JSON.stringify(v)); } catch (e) {} }
 };
+
+/* ---------- your history (this device) ----------
+   The last 15 round scores per game feed "Your skills"; daily totals feed the comparison on the results screen. */
+function logRound(mode, pts) { const h = store.get("hist." + mode, []); h.push(pts); store.set("hist." + mode, h.slice(-15)); }
+const mean = (a) => a.reduce((x, y) => x + y, 0) / a.length;
+function modeAvg(mode) { const h = store.get("hist." + mode, []); return h.length ? mean(h) : null; }
+function skillAvg(sk) { const v = sk.modes.map(modeAvg).filter((x) => x != null); return v.length ? mean(v) : null; }
+function dailyHistory() {
+  const out = [];
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (!k || !/^gst\.daily\.\d{4}-\d\d-\d\d$/.test(k)) continue;
+      const v = store.get(k.slice(4), null);
+      if (v && typeof v.total === "number" && Array.isArray(v.results)) out.push(v);
+    }
+  } catch (_) {}
+  return out.sort((a, b) => (a.key < b.key ? -1 : 1));
+}
+// Players from before skills existed start with the rounds of the days they already played.
+function seedHistory() {
+  if (store.get("histSeed", false)) return;
+  store.set("histSeed", true);
+  dailyHistory().forEach((d) => d.results.forEach((r) => { if (r && ORDER.includes(r.mode)) logRound(r.mode, r.pts); }));
+}
+// An unfinished daily run from today, if there is one: leaving or reloading doesn't lose the rounds already played.
+function savedDaily(rounds) {
+  const sv = store.get("dailyRun", null);
+  if (!sv || sv.key !== todayKey() || !Array.isArray(sv.results) || !sv.results.length || sv.results.length >= rounds.length) return null;
+  return sv.results.every((r, i) => r && r.mode === rounds[i]) ? sv.results : null;
+}
 
 /* ---------- helpers ---------- */
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
@@ -755,7 +840,11 @@ const ICONS = {
   shade: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3.5" width="18" height="8" rx="1.5" style="fill:var(--liquid)" stroke="none"/><rect x="3.5" y="14.5" width="7" height="6" rx="1.2" style="fill:var(--liquid-top)"/><rect x="13.5" y="14.5" width="7" height="6" rx="1.2"/></svg>',
   glimpse: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2.5"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><path d="M16.6 5.4l.8 1.8 1.8.8-1.8.8-.8 1.8-.8-1.8-1.8-.8 1.8-.8z" style="fill:var(--liquid)" stroke="none"/></svg>',
   bounce: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 3v17h16V3"/><path d="M7.5 5l10 6.5-4.5 4.2" stroke-dasharray="2 2.6"/><circle cx="11.6" cy="17.2" r="2" style="fill:var(--liquid)" stroke="none"/></svg>',
-  ballpark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9.5c2.3-2.2 4.6-2.2 7 0s4.7 2.2 7 0"/><path d="M5 15c2.3-2.2 4.6-2.2 7 0s4.7 2.2 7 0" style="stroke:var(--liquid)"/></svg>'
+  ballpark: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 9.5c2.3-2.2 4.6-2.2 7 0s4.7 2.2 7 0"/><path d="M5 15c2.3-2.2 4.6-2.2 7 0s4.7 2.2 7 0" style="stroke:var(--liquid)"/></svg>',
+  grid: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="13.5" y="3.5" width="7" height="7" rx="1.4" style="fill:var(--liquid)" stroke="none"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.4" style="fill:var(--liquid)" stroke="none"/><rect x="3.5" y="3.5" width="7" height="7" rx="1.4"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.4"/></svg>',
+  tunnel: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2.5 18.5h19M21 6v12.5"/><path d="M10.5 18.5V10h10.5" stroke-dasharray="2 2.6"/><circle cx="5.8" cy="15.3" r="2.4" style="fill:var(--liquid)" stroke="none"/></svg>',
+  scale: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 15h18M3 11.5v7M21 11.5v7"/><path d="M14.5 6.5V15" style="stroke:var(--liquid)"/><path d="M14.5 3.2l2 3.3h-4z" style="fill:var(--liquid)" stroke="none"/></svg>',
+  span: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h8M4 18v4M12 18v4"/><path d="M5 14 19.5 4" style="stroke:var(--liquid)"/></svg>'
 };
 
 /* ---------- canvas ---------- */
@@ -1655,6 +1744,337 @@ MODES.ballpark = {
   }
 };
 
+/* ---------- Grid: after Lumosity's Memory Matrix ---------- */
+function gridGeom(n) { const gap = 8, size = Math.min(66, (344 - gap * (n - 1)) / n), o = (W - (n * size + (n - 1) * gap)) / 2; return { size, gap, o }; }
+function gridCell(n, x, y) {
+  const g = gridGeom(n), step = g.size + g.gap;
+  const cx = Math.floor((x - g.o + g.gap / 2) / step), cy = Math.floor((y - g.o + g.gap / 2) / step);
+  return cx < 0 || cy < 0 || cx >= n || cy >= n ? -1 : cy * n + cx;
+}
+const gridHits = (p, g) => g.filter((k) => p.cells.includes(k)).length;
+function gridSync(c) {
+  const lb = $("#lockBtn"), h = $("#cHint"), left = c.p.cells.length - c.picked.length;
+  if (lb) lb.disabled = c.picked.length === 0;
+  if (h) h.textContent = left ? `${left} more to find. Tap a tile again to undo it.` : "All picked. Lock it in, or tap a tile to change it.";
+}
+function gridToggle(c, k) {
+  if (cur !== c || c.phase !== "guess" || c.gphase !== "pick" || k < 0) return;
+  const i = c.picked.indexOf(k);
+  if (i >= 0) c.picked.splice(i, 1);
+  else if (c.picked.length < c.p.cells.length) c.picked.push(k);
+  gridSync(c); draw();
+}
+const gridLock = (c) => { if (c.picked.length) lock(c.picked.slice().sort((a, b) => a - b)); };
+cv.addEventListener("pointerdown", (e) => {
+  const c = cur;
+  if (!c || c.mode !== "grid" || c.phase !== "guess" || c.gphase !== "pick") return;
+  e.preventDefault();
+  const r = cv.getBoundingClientRect();
+  c.kfocus = false;
+  gridToggle(c, gridCell(c.p.n, ((e.clientX - r.left) / r.width) * W, ((e.clientY - r.top) / r.height) * W));
+});
+cv.addEventListener("keydown", (e) => {
+  const c = cur;
+  if (!c || c.mode !== "grid" || c.phase !== "guess" || c.gphase !== "pick") return;
+  const n = c.p.n, d = { ArrowLeft: -1, ArrowRight: 1, ArrowUp: -n, ArrowDown: n }[e.key];
+  if (d) {
+    e.preventDefault(); c.kfocus = true;
+    const nx = c.kc + d, sameRow = Math.floor(nx / n) === Math.floor(c.kc / n);
+    if (nx >= 0 && nx < n * n && (Math.abs(d) !== 1 || sameRow)) c.kc = nx;
+    draw();
+  } else if (e.key === " ") { e.preventDefault(); c.kfocus = true; gridToggle(c, c.kc); }
+  else if (e.key === "Enter") { e.preventDefault(); gridLock(c); }
+});
+MODES.grid = {
+  name: "Grid", blurb: "Tiles light up. Tap the ones you remember.",
+  gen(rng, i, daily) {
+    const [n, k, dur] = daily ? [5, 7, 1500] : [[4, 4, 1500], [4, 6, 1500], [5, 7, 1400], [5, 9, 1400], [6, 11, 1400]][i];
+    const cells = shuffle(Array.from({ length: n * n }, (_, j) => j), rng).slice(0, k).sort((a, b) => a - b);
+    return { n, cells, dur };
+  },
+  prompt: (p) => ({ title: "Which tiles lit up?", sub: `${p.cells.length} tiles light up for ${p.dur / 1000} s. Then tap the ones you remember.` }),
+  setup(c) {
+    c.gphase = "ready"; c.picked = []; c.kc = 0; c.kfocus = false;
+    controls.innerHTML = `<button class="btn primary" id="grBtn" type="button">Show the pattern</button><p class="hint">Look for shapes: rows, corners, diagonals.</p>`;
+    $("#grBtn").addEventListener("click", (e) => {
+      const b = e.currentTarget; b.disabled = true; b.textContent = "Memorize it…";
+      c.gphase = "show"; c.memoT = 0; draw();
+      const t0 = performance.now();
+      const step = (now) => {
+        if (cur !== c || c.gphase !== "show") return;
+        c.memoT = Math.min(1, (now - t0) / c.p.dur); draw();
+        if (c.memoT < 1) requestAnimationFrame(step);
+      };
+      requestAnimationFrame(step);
+      timers.push(setTimeout(() => { if (cur !== c) return; c.gphase = "blank"; draw(); }, c.p.dur));
+      timers.push(setTimeout(() => {
+        if (cur !== c) return;
+        c.gphase = "pick"; stageEl.classList.add("touch", "pick"); cv.tabIndex = 0;
+        controls.innerHTML = `<p class="hint" id="cHint"></p><button class="btn primary" id="lockBtn" type="button" disabled>Lock in</button>`;
+        $("#lockBtn").addEventListener("click", () => gridLock(c));
+        gridSync(c); draw();
+      }, c.p.dur + 350));
+    });
+  },
+  score: (p, g) => (100 * gridHits(p, g)) / p.cells.length,
+  describe(p, g) {
+    const hit = gridHits(p, g), n = p.cells.length, wrong = g.length - hit;
+    const fact = hit === n ? "Every tile, straight from memory."
+      : `You found ${hit} of ${n}${wrong ? ` and picked ${wrong} that ${wrong === 1 ? "wasn't" : "weren't"} lit` : ""}. Grouping tiles into shapes makes a pattern easier to hold.`;
+    return { pairs: [["Found", `${hit} of ${n}`], ["Shown for", (p.dur / 1000).toFixed(1) + " s"]], fact };
+  },
+  draw(c) {
+    const p = c.p, g = gridGeom(p.n), step = g.size + g.gap, reveal = c.phase === "reveal";
+    const lit = !reveal && c.gphase === "show", picks = reveal ? c.guess : c.picked || [];
+    for (let k = 0; k < p.n * p.n; k++) {
+      const x = g.o + (k % p.n) * step, y = g.o + Math.floor(k / p.n) * step;
+      const isT = p.cells.includes(k), picked = picks.includes(k);
+      let fill = C.panel, stroke = C.rule, lw = 1.5;
+      if (lit && isT) { fill = C.liquid; stroke = C.liquid; }
+      else if (!reveal && picked) { fill = C.ink; stroke = C.ink; }
+      else if (reveal && isT && picked) { fill = C.good; stroke = C.good; }
+      else if (reveal && isT) { fill = C["liquid-top"]; stroke = C.liquid; lw = 2; }
+      else if (reveal && picked) { stroke = C.off; lw = 3; }
+      ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = lw;
+      ctx.beginPath();
+      if (ctx.roundRect) ctx.roundRect(x, y, g.size, g.size, 6); else ctx.rect(x, y, g.size, g.size);
+      ctx.fill(); ctx.stroke();
+      if (reveal && picked) text(isT ? "✓" : "✗", x + g.size / 2, y + g.size / 2 + 1, { size: Math.round(g.size * 0.42), weight: 800, color: isT ? C.stage : C.off });
+      if (!reveal && c.gphase === "pick" && c.kfocus && k === c.kc) {
+        ctx.strokeStyle = C.liquid; ctx.lineWidth = 3;
+        ctx.strokeRect(x - 4, y - 4, g.size + 8, g.size + 8);
+      }
+    }
+    if (lit) { ctx.fillStyle = C.liquid; ctx.fillRect(0, W - 6, W * (1 - (c.memoT || 0)), 6); }
+    if (reveal && picks.some((k) => !p.cells.includes(k)) || reveal && p.cells.some((k) => !picks.includes(k))) {
+      text("green: found · pink: missed · ✗: not lit", 200, W - 12, { size: 11, weight: 500, color: C["ink-2"] });
+    }
+  }
+};
+
+/* ---------- Tunnel: when does a hidden ball arrive? ---------- */
+const TN = { x0: 26, wall: 374, y: 236, r: 9 };
+const tunnelT = (p) => (TN.wall - p.tx) / p.v; // seconds from the ball's front edge entering the tunnel to hitting the wall
+function tunnelTap(c) {
+  if (!c || c !== cur || c.mode !== "tunnel" || c.phase !== "guess") return;
+  const b = $("#tnBtn"), p = c.p, now = performance.now();
+  if (c.tphase === "ready") {
+    c.tphase = "roll"; c.t0 = now;
+    c.tIn = now + ((p.tx - (TN.x0 + TN.r)) / p.v) * 1000;
+    if (b) { b.classList.add("down"); b.textContent = "Tap when it hits the wall"; }
+    const step = (t) => {
+      if (cur !== c || c.phase !== "guess") return;
+      c.bx = TN.x0 + (p.v * (t - c.t0)) / 1000;
+      draw();
+      if (c.bx - TN.r < p.tx + 2) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+    // No tap at all: stop long after the ball has arrived.
+    timers.push(setTimeout(() => { if (cur === c && c.phase === "guess") lock(Math.round(tunnelT(p) * 300) / 100); }, c.tIn - now + tunnelT(p) * 3000));
+    return;
+  }
+  if (now < c.tIn) { const h = $("#hHint"); if (h) h.textContent = "Wait until the ball is inside the tunnel."; return; }
+  if (b) b.classList.remove("down");
+  lock(Math.round((now - c.tIn) / 10) / 100);
+}
+document.addEventListener("keydown", (e) => {
+  if (!cur || cur.mode !== "tunnel" || cur.phase !== "guess") return;
+  if (e.key !== " " && e.key !== "Enter") return;
+  const onButton = e.target && e.target.closest && e.target.closest("button");
+  if (onButton && onButton.id !== "tnBtn") return;
+  e.preventDefault();
+  if (!e.repeat) tunnelTap(cur);
+});
+MODES.tunnel = {
+  name: "Tunnel", blurb: "A ball rolls out of sight. Tap when it arrives.",
+  gen(rng, i, daily) {
+    const [lo, hi] = daily ? [1.2, 2.8] : [[1.0, 1.3], [1.3, 1.7], [1.7, 2.2], [2.2, 2.8], [2.8, 3.5]][i];
+    // Speed and hidden time set the tunnel's length, so the ball is always in view for a second or two first.
+    const T = lo + rng() * (hi - lo), len = Math.round(clamp((70 + rng() * 60) * T, 110, 250));
+    return { v: Math.round((len / T) * 10) / 10, tx: TN.wall - len };
+  },
+  prompt: () => ({ title: "Tap when the ball hits the wall", sub: "The ball keeps its speed inside the tunnel. Tap the moment it reaches the far wall." }),
+  setup(c) {
+    c.tphase = "ready"; c.bx = TN.x0;
+    controls.innerHTML = `<button class="hold" id="tnBtn" type="button">Roll the ball</button><p class="hint" id="hHint">Space bar works too.</p>`;
+    const b = $("#tnBtn");
+    b.addEventListener("pointerdown", (e) => { if (e.button > 0) return; e.preventDefault(); tunnelTap(c); });
+    b.addEventListener("click", (e) => e.preventDefault());
+    b.addEventListener("contextmenu", (e) => e.preventDefault());
+  },
+  score: (p, g) => 100 - 300 * (Math.abs(g - tunnelT(p)) / tunnelT(p)),
+  describe(p, g) {
+    const T = tunnelT(p), d = g - T;
+    const fact = g >= T * 2.99 ? `No tap. The ball needed ${T.toFixed(2)} s to cross the tunnel.`
+      : Math.abs(d) < 0.03 ? "Right on the wall."
+      : `${Math.abs(d).toFixed(2)} s ${d > 0 ? "late" : "early"}, ${Math.round((Math.abs(d) / T) * 100)}% off. The ball never changed speed.`;
+    return { pairs: [["You", g.toFixed(2) + " s"], ["Actual", T.toFixed(2) + " s"]], fact };
+  },
+  draw(c) {
+    const p = c.p, y = TN.y, reveal = c.phase === "reveal", T = tunnelT(p), top = y - 44, bot = y + TN.r;
+    const ball = (x, ghost) => {
+      ctx.beginPath(); ctx.arc(x, y, TN.r, 0, Math.PI * 2);
+      if (ghost) { ctx.strokeStyle = C["liquid-deep"]; ctx.lineWidth = 2.5; ctx.setLineDash([4, 4]); ctx.stroke(); ctx.setLineDash([]); }
+      else { ctx.fillStyle = C.liquid; ctx.fill(); ctx.strokeStyle = C.ink; ctx.lineWidth = 1.5; ctx.stroke(); }
+    };
+    const tunnel = (alpha) => {
+      const w = TN.wall - p.tx, h = bot - top;
+      ctx.save();
+      ctx.globalAlpha = alpha; ctx.fillStyle = C.panel; ctx.fillRect(p.tx, top, w, h);
+      ctx.beginPath(); ctx.rect(p.tx, top, w, h); ctx.clip();
+      ctx.strokeStyle = C["grid-major"]; ctx.lineWidth = 1.5;
+      for (let x = -h; x < w; x += 12) { ctx.beginPath(); ctx.moveTo(p.tx + x, bot); ctx.lineTo(p.tx + x + h, top); ctx.stroke(); }
+      ctx.restore();
+      ctx.strokeStyle = C.ink; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(p.tx, top); ctx.lineTo(TN.wall, top); ctx.stroke();
+    };
+    // ground and far wall
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(8, bot + 1.5); ctx.lineTo(TN.wall + 3, bot + 1.5); ctx.stroke();
+    ctx.lineWidth = 6;
+    ctx.beginPath(); ctx.moveTo(TN.wall + 3, top - 16); ctx.lineTo(TN.wall + 3, bot + 3); ctx.stroke();
+    if (!reveal) {
+      if (c.tphase === "ready") {
+        ctx.strokeStyle = C["ink-2"]; ctx.lineWidth = 2; ctx.setLineDash([4, 4]);
+        ctx.beginPath(); ctx.moveTo(TN.x0 + 16, y); ctx.lineTo(TN.x0 + 56, y); ctx.stroke(); ctx.setLineDash([]);
+        ctx.beginPath(); ctx.moveTo(TN.x0 + 50, y - 6); ctx.lineTo(TN.x0 + 58, y); ctx.lineTo(TN.x0 + 50, y + 6); ctx.stroke();
+      }
+      ball(c.bx);
+      tunnel(1);
+      tag("tunnel", p.tx + 8, top + 16, { align: "left", size: 12, color: C["ink-2"] });
+      text("wall", TN.wall + 3, top - 28, { size: 11, weight: 500, color: C["ink-2"] });
+      return;
+    }
+    const g = c.guess, d = g - T, none = g >= T * 2.99;
+    text(none ? "no tap" : (d >= 0 ? "+" : "−") + Math.abs(d).toFixed(2) + " s", 200, 92, { size: 56, weight: 900, font: "display" });
+    text(none ? `it arrived after ${T.toFixed(2)} s` : Math.abs(d) < 0.03 ? "right on time" : d > 0 ? "too late" : "too early", 200, 136, { size: 14, weight: 500, color: C["ink-2"] });
+    tunnel(0.5);
+    ball(TN.wall - TN.r);
+    tag(`hit after ${T.toFixed(2)} s`, TN.wall - 4, top - 18, { align: "right", size: 13 });
+    if (d < -0.03) {
+      const gx = clamp(p.tx + p.v * g - TN.r, p.tx - TN.r, TN.wall - TN.r);
+      ball(gx, true);
+      tag("here when you tapped", gx, bot + 26, { size: 12, color: C["liquid-deep"] });
+    } else if (!none && d > 0.03) {
+      text(`it had been waiting ${d.toFixed(2)} s when you tapped`, 200, bot + 30, { size: 12, weight: 500, color: C["liquid-deep"] });
+    }
+  }
+};
+
+/* ---------- Scale: place a number on an unmarked line ---------- */
+const SC = { x0: 32, x1: 368, y: 258 };
+const scFmt = (p, v) => (p.dp ? v.toFixed(p.dp) : fmtN(Math.round(v)));
+const scX = (p, v) => SC.x0 + ((v - p.lo) / (p.hi - p.lo)) * (SC.x1 - SC.x0);
+const scVal = (p, x) => { const v = p.lo + ((x - SC.x0) / (SC.x1 - SC.x0)) * (p.hi - p.lo); return Math.round(v / p.step) * p.step; };
+MODES.scale = {
+  name: "Scale", blurb: "Place a number on an unmarked line.",
+  gen(rng, i, daily) {
+    const kind = daily ? pick(rng, ["k", "odd", "big", "dec"]) : ["hundred", "k", "odd", "big", "dec"][i];
+    const R = (a, b) => a + Math.floor(rng() * (b - a + 1));
+    let f; do { f = 0.06 + rng() * 0.88; } while (Math.abs(f - 0.5) < 0.03 || Math.abs(f - 0.25) < 0.02 || Math.abs(f - 0.75) < 0.02);
+    let lo = 0, hi = 100, step = 1, dp = 0;
+    if (kind === "k") hi = 1000;
+    else if (kind === "odd") { lo = R(2, 7) * 10; hi = lo + R(4, 9) * 10; }
+    else if (kind === "big") { hi = pick(rng, [5000, 20000, 250000, 1000000]); step = hi / 1000; }
+    else if (kind === "dec") { hi = pick(rng, [1, 2, 5]); step = 0.01; dp = 2; }
+    const n = Math.round((lo + f * (hi - lo)) / step) * step;
+    return { lo, hi, step, dp, n: dp ? Math.round(n * 100) / 100 : n };
+  },
+  prompt: (p) => ({ title: `Where does ${scFmt(p, p.n)} go?`, sub: `The line runs from ${scFmt(p, p.lo)} to ${scFmt(p, p.hi)}. Tap the spot where the number belongs.` }),
+  setup(c) { c.mark = null; tapControls(c, "Tap the line. Drag to adjust."); },
+  tap: () => true,
+  snap: (c, x) => [r1(clamp(x, SC.x0, SC.x1)), SC.y],
+  score: (p, g) => 100 - 500 * (Math.abs(g[0] - scX(p, p.n)) / (SC.x1 - SC.x0)),
+  describe(p, g) {
+    const gv = scVal(p, g[0]), pct = (Math.abs(g[0] - scX(p, p.n)) / (SC.x1 - SC.x0)) * 100;
+    const fact = pct < 0.6 ? "Right on the mark."
+      : `Off by ${scFmt(p, Math.abs(gv - p.n))}, which is ${pct < 10 ? pct.toFixed(1) : Math.round(pct)}% of the line. Finding the middle first (${scFmt(p, (p.lo + p.hi) / 2)}) gives you an anchor.`;
+    return { pairs: [["You", scFmt(p, gv)], ["Target", scFmt(p, p.n)]], fact };
+  },
+  draw(c) {
+    const p = c.p, y = SC.y, reveal = c.phase === "reveal";
+    text("WHERE DOES THIS GO?", 200, 70, { size: 12, weight: 600, color: C["ink-2"] });
+    fitText(scFmt(p, p.n), 200, 130, 340, 84, { weight: 900, font: "display" });
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(SC.x0, y); ctx.lineTo(SC.x1, y); ctx.stroke();
+    [SC.x0, SC.x1].forEach((x) => { ctx.beginPath(); ctx.moveTo(x, y - 16); ctx.lineTo(x, y + 16); ctx.stroke(); });
+    const ends = () => {
+      tag(scFmt(p, p.lo), SC.x0 - 6, y + 36, { size: 16, align: "left" });
+      tag(scFmt(p, p.hi), SC.x1 + 6, y + 36, { size: 16, align: "right" });
+    };
+    const pin = (x, color, up) => {
+      ctx.strokeStyle = color; ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.moveTo(x, y - 24); ctx.lineTo(x, y + 24); ctx.stroke();
+      ctx.fillStyle = color; ctx.beginPath();
+      if (up) { ctx.moveTo(x, y - 26); ctx.lineTo(x - 7, y - 38); ctx.lineTo(x + 7, y - 38); }
+      else { ctx.moveTo(x, y + 26); ctx.lineTo(x - 7, y + 38); ctx.lineTo(x + 7, y + 38); }
+      ctx.closePath(); ctx.fill();
+    };
+    if (!reveal) { ends(); if (c.mark) pin(c.mark[0], C["liquid-deep"], true); return; }
+    ctx.strokeStyle = C["ink-2"]; ctx.lineWidth = 1.5;
+    [0.25, 0.5, 0.75].forEach((f) => { const x = SC.x0 + f * (SC.x1 - SC.x0); ctx.beginPath(); ctx.moveTo(x, y - 8); ctx.lineTo(x, y + 8); ctx.stroke(); });
+    const tx = scX(p, p.n), gx = c.guess[0];
+    pin(tx, C.ink, true);
+    tag(scFmt(p, p.n), tx, y - 54, { size: 15 });
+    pin(gx, C["liquid-deep"], false);
+    ends(); // after the pins, so a guess near either end doesn't cover the label
+    tag("you " + scFmt(p, scVal(p, gx)), gx, y + 76, { size: 14, color: C["liquid-deep"] });
+  }
+};
+
+/* ---------- Span: compare a line with a 100-unit bar ---------- */
+const SP = { cx: 200, cy: 164, by: 348 };
+function spanEnds(p) {
+  const L = (p.ref * p.ans) / 100, a = (p.ang * Math.PI) / 180, dx = (Math.cos(a) * L) / 2, dy = (Math.sin(a) * L) / 2;
+  return { L, a, x1: SP.cx - dx, y1: SP.cy + dy, x2: SP.cx + dx, y2: SP.cy - dy };
+}
+MODES.span = {
+  name: "Span", blurb: "Judge a length against a 100-unit bar.",
+  gen(rng, i, daily) {
+    const ref = Math.round(70 + rng() * 50);
+    const [lo, hi] = daily ? [0.45, 2.5] : [[1.2, 1.9], [0.45, 0.9], [1.6, 2.5], [0.45, 2.5], [1.3, 2.5]][i];
+    let ans = Math.round((lo + rng() * (hi - lo)) * 100);
+    if (Math.abs(ans - 100) < 5) ans += ans >= 100 ? 7 : -7;
+    const ang = daily ? Math.round(20 + rng() * 140) : [0, 0, 90, Math.round(25 + rng() * 40), Math.round(100 + rng() * 60)][i];
+    return { ref, ans, ang };
+  },
+  prompt: () => ({ title: "How long is the line?", sub: "The bar at the bottom is 100 units long. Give the length of the line above it in the same units." }),
+  setup(c) { sliderControl(c, { max: 300, start: 100, unit: "", label: "Your guess for the line's length, where the bar is 100", ticks: [0, 100, 200, 300] }); },
+  score: (p, g) => 100 - 300 * (Math.abs(g - p.ans) / p.ans),
+  describe(p, g) {
+    const d = g - p.ans, upright = p.ang > 55 && p.ang < 125;
+    const fact = d === 0 ? "Dead on."
+      : `${Math.round((Math.abs(d) / p.ans) * 100)}% too ${d > 0 ? "long" : "short"}.${upright && d > 0 ? " Upright lines tend to look longer than flat ones." : ""}`;
+    return { pairs: [["You", String(g)], ["Actual", String(p.ans)]], fact };
+  },
+  draw(c) {
+    const p = c.p, e = spanEnds(p), reveal = c.phase === "reveal";
+    const ux = Math.cos(e.a), uy = -Math.sin(e.a), nx = -uy, ny = ux;
+    const tick = (x, y, h, color, lw) => { ctx.strokeStyle = color; ctx.lineWidth = lw; ctx.beginPath(); ctx.moveTo(x - nx * h, y - ny * h); ctx.lineTo(x + nx * h, y + ny * h); ctx.stroke(); };
+    // the 100-unit bar
+    const bx0 = SP.cx - p.ref / 2, bx1 = SP.cx + p.ref / 2;
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.moveTo(bx0, SP.by); ctx.lineTo(bx1, SP.by); ctx.stroke();
+    ctx.lineWidth = 3;
+    [bx0, bx1].forEach((x) => { ctx.beginPath(); ctx.moveTo(x, SP.by - 9); ctx.lineTo(x, SP.by + 9); ctx.stroke(); });
+    text("100", SP.cx, SP.by + 26, { size: 16, weight: 700 });
+    // the line to judge
+    ctx.strokeStyle = C.ink; ctx.lineWidth = 5;
+    ctx.beginPath(); ctx.moveTo(e.x1, e.y1); ctx.lineTo(e.x2, e.y2); ctx.stroke();
+    tick(e.x1, e.y1, 10, C.ink, 3); tick(e.x2, e.y2, 10, C.ink, 3);
+    if (!reveal) { text("?", SP.cx + nx * 30, SP.cy + ny * 30, { size: 26, weight: 800, color: C["ink-2"] }); return; }
+    // lay the bar along the line: one tick per 100 units
+    for (let u = 100; u < p.ans; u += 100) {
+      const x = e.x1 + ux * p.ref * (u / 100), y = e.y1 + uy * p.ref * (u / 100);
+      tick(x, y, 8, C["ink-2"], 2);
+    }
+    const gl = p.ref * (c.guess / 100), gx = clamp(e.x1 + ux * gl, 8, W - 8), gy = clamp(e.y1 + uy * gl, 8, W - 8);
+    tick(gx, gy, 14, C["liquid-deep"], 3);
+    tag("you " + c.guess, clamp(gx - nx * 34, 44, W - 44), clamp(gy - ny * 34, 16, 316), { size: 13, color: C["liquid-deep"] });
+    tag(String(p.ans), SP.cx + nx * 30, SP.cy + ny * 30, { size: 17 });
+  }
+};
+
 function countInput(c) {
   controls.innerHTML =
     `<div class="readrow">
@@ -1765,7 +2185,14 @@ function newRun(kind, mode) {
     : [0, 1, 2, 3, 4].map((i) => ({ mode, p: MODES[mode].gen(rng, i, false, bag) }));
   return { kind, mode: mode || null, key, day: dayNumber(), rounds, idx: 0, results: [] };
 }
-function startRun(kind, mode) { run = newRun(kind, mode); show("play"); startRound(); }
+function startRun(kind, mode) {
+  run = newRun(kind, mode);
+  if (kind === "daily") {
+    const done = savedDaily(run.rounds.map((r) => r.mode));
+    if (done) { run.results = done; run.idx = done.length; }
+  }
+  show("play"); startRound();
+}
 
 function startRound() {
   clearTimers();
@@ -1801,6 +2228,9 @@ function lock(guess) {
   const pts = clamp(Math.round(m.score(cur.p, guess)), 0, 100);
   const d = m.describe(cur.p, guess);
   run.results.push({ mode: cur.mode, pts, pairs: d.pairs });
+  logRound(cur.mode, pts);
+  if (run.kind === "daily") store.set("dailyRun", { key: run.key, results: run.results });
+  try { if (navigator.vibrate) navigator.vibrate(pts >= 80 ? [10, 50, 10] : 10); } catch (_) {}
   stageEl.classList.remove("touch", "pick");
   controls.hidden = true;
   const v = $("#verdict"); v.textContent = verdictWord(pts); v.dataset.tier = tier(pts);
@@ -1936,6 +2366,7 @@ function finishRun() {
   const o = { kind: run.kind, mode: run.mode, key: run.key, day: run.day, results: run.results, total };
   let newBest = false;
   if (run.kind === "daily") {
+    store.set("dailyRun", null);
     if (!store.get("daily." + run.key, null)) {
       store.set("daily." + run.key, o);
       const st = store.get("stats", { played: 0, streak: 0, lastDay: 0, best: 0 });
@@ -1948,6 +2379,7 @@ function finishRun() {
   } else {
     const b = store.get("best." + run.mode, 0);
     if (total > b) { store.set("best." + run.mode, total); newBest = b > 0; }
+    store.set("runs." + run.mode, store.get("runs." + run.mode, []).concat(total).slice(-10));
   }
   run = null;
   renderResults(o, newBest);
@@ -1959,6 +2391,19 @@ function renderResults(o, newBest) {
     : `Practice · ${MODES[o.mode].name}${newBest ? " · New best" : ""}`;
   const [h, s] = overall(o.total);
   $("#resHead").textContent = h; $("#resSub").textContent = s;
+  // How this compares with your own recent scores.
+  let cmp = "";
+  if (o.kind === "daily") {
+    const past = dailyHistory().filter((d) => d.key < o.key).slice(-7);
+    if (past.length >= 2) {
+      const avg = Math.round(mean(past.map((d) => d.total))), diff = o.total - avg;
+      cmp = `Your average over your last ${past.length} days is ${avg}. This one is ${diff === 0 ? "right on it" : Math.abs(diff) + (diff > 0 ? " above it" : " below it")}.`;
+    }
+  } else {
+    const runs = store.get("runs." + o.mode, []);
+    if (runs.length >= 2) cmp = `${newBest ? "A new best." : "Your best is " + store.get("best." + o.mode, o.total) + "."} Your last ${runs.length} runs average ${Math.round(mean(runs))}.`;
+  }
+  $("#resCompare").textContent = cmp; $("#resCompare").hidden = !cmp;
   $("#resRows").innerHTML = o.results.map((r) => `
     <li>
       <span style="color:var(--ink)">${ICONS[r.mode]}</span>
@@ -2617,30 +3062,66 @@ function showHome() {
   } else {
     $("#dailyPlayed").hidden = true;
     $("#dpRank").hidden = true;
-    btn.textContent = "Play today's five";
+    const part = savedDaily(dailyModes(key));
+    btn.textContent = part ? "Continue today's five" : "Play today's five";
     btn.classList.add("primary");
     btn.onclick = () => startRun("daily");
-    $("#dailyFine").firstChild.nodeValue = "Same five for everyone today. New set in ";
+    $("#dailyFine").firstChild.nodeValue = part ? `Round ${part.length + 1} of 5 is next. New set in ` : "Same five for everyone today. New set in ";
   }
-  $("#modeList").innerHTML = ORDER.map((m) => {
-    const best = store.get("best." + m, 0);
-    return `<li><button class="mode-btn" type="button" data-mode="${m}">
-      <span class="mode-ico">${ICONS[m]}</span>
-      <span style="min-width:0"><span class="mode-name">${MODES[m].name}</span><span class="mode-blurb">${MODES[m].blurb}</span></span>
-      <span class="mode-best">${best ? `best<b>${best}</b>` : "new"}</span>
-    </button></li>`;
+
+  // Totals and streak
+  const st = store.get("stats", { played: 0, streak: 0, lastDay: 0, best: 0 });
+  const played = ME ? ME.played || 0 : st.played;
+  const streak = ME ? ME.streak || 0 : st.lastDay >= day - 1 ? st.streak : 0;
+  $("#stPlayed").textContent = played;
+  $("#stStreak").textContent = streak;
+  $("#stBest").textContent = (ME ? ME.best : st.best) || "–";
+
+  // The last seven days. With an account, days played on other devices count through the streak.
+  const now = new Date(), from = done ? 0 : 1;
+  $("#weekDays").innerHTML = [6, 5, 4, 3, 2, 1, 0].map((back) => {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - back);
+    const on = !!store.get("daily." + todayKey(d), null) || (!!ME && back >= from && back < from + streak);
+    const name = d.toLocaleDateString("en-GB", { weekday: "long" });
+    return `<li data-on="${on}"${back === 0 ? ' data-today="true"' : ""} aria-label="${name}: ${on ? "played" : "not played"}"><i></i><span aria-hidden="true">${name[0]}</span></li>`;
   }).join("");
-  $("#modeList").querySelectorAll(".mode-btn").forEach((b) => b.addEventListener("click", () => startRun("practice", b.dataset.mode)));
-  if (ME) {
-    $("#stPlayed").textContent = ME.played || 0;
-    $("#stStreak").textContent = ME.streak || 0;
-    $("#stBest").textContent = ME.best || "–";
-  } else {
-    const st = store.get("stats", { played: 0, streak: 0, lastDay: 0, best: 0 });
-    $("#stPlayed").textContent = st.played;
-    $("#stStreak").textContent = st.lastDay >= day - 1 ? st.streak : 0;
-    $("#stBest").textContent = st.best ? st.best : "–";
+  $("#weekStreak").innerHTML = streak > 0
+    ? `<b>${streak}-day streak</b>${done ? "Back tomorrow" : "Play to keep it"}`
+    : "<b>No streak yet</b>Play to start one";
+
+  // Skills: one bar per area, from the recent rounds on this device.
+  const avgs = SKILLS.map((sk) => [sk, skillAvg(sk)]), have = avgs.filter(([, a]) => a != null);
+  $("#progress").hidden = !played && !have.length;
+  $("#skills").hidden = !have.length;
+  $("#skillList").innerHTML = avgs.map(([sk, a]) => a == null
+    ? `<li><span class="sk-name">${sk.name}</span><div class="bar"></div><b data-empty="true" aria-label="not played yet">–</b></li>`
+    : `<li><span class="sk-name">${sk.name}</span><div class="bar"><i data-tier="${tier(a)}" style="width:${Math.max(2, Math.round(a))}%"></i></div><b>${Math.round(a)}</b></li>`).join("");
+  // Suggest what to practice: an area not tried yet, else the weakest one.
+  const untried = avgs.find(([, a]) => a == null), weakest = have.slice().sort((x, y) => x[1] - y[1])[0];
+  const tipSkill = untried ? untried[0] : have.length > 1 ? weakest[0] : null;
+  $("#skillTip").hidden = !tipSkill;
+  if (tipSkill) {
+    const withAvg = tipSkill.modes.map((m) => [m, modeAvg(m)]);
+    const game = (withAvg.find(([, a]) => a == null) || withAvg.slice().sort((x, y) => x[1] - y[1])[0])[0];
+    $("#skillTipText").innerHTML = untried ? `Not tried yet: <b>${tipSkill.name}</b>.` : `Weakest right now: <b>${tipSkill.name}</b>.`;
+    $("#skillTipBtn").textContent = `Practice ${MODES[game].name}`;
+    $("#skillTipBtn").onclick = () => startRun("practice", game);
   }
+
+  // All games, grouped by skill area
+  $("#modeList").innerHTML = SKILLS.map((sk) => `
+    <section class="skill-group" aria-label="${sk.name} games">
+      <div class="skill-head"><h3>${sk.name}</h3><span>${sk.blurb}</span></div>
+      <ul class="tiles">${sk.modes.map((m) => {
+        const best = store.get("best." + m, 0), isNew = !best && m in LATER && !store.get("hist." + m, []).length;
+        return `<li><button class="mode-btn" type="button" data-mode="${m}">
+          <span class="mode-top"><span class="mode-ico">${ICONS[m]}</span>${best ? `<span class="mode-best">best<b>${best}</b></span>` : isNew ? '<span class="pill-new">New</span>' : ""}</span>
+          <span class="mode-name">${MODES[m].name}</span>
+          <span class="mode-blurb">${MODES[m].blurb}</span>
+        </button></li>`;
+      }).join("")}</ul>
+    </section>`).join("");
+  $("#modeList").querySelectorAll(".mode-btn").forEach((b) => b.addEventListener("click", () => startRun("practice", b.dataset.mode)));
   renderAccountBits();
   tickClock();
 }
@@ -2671,6 +3152,7 @@ function boot(data) {
   }
   showHome();
 }
+seedHistory();
 initAccounts();
 boot({});
 

@@ -15,14 +15,20 @@
 | **Glimpse** | Keep your eyes on the center while a star flashes for a split second somewhere else. Tap where it was. |
 | **Bounce** | Watch a ball fly, then predict where it lands after it bounces out of sight in the fog. |
 | **Ballpark** | Estimate a product, a sum or a percentage before 7 seconds run out. |
+| **Grid** | Tiles light up on a grid. Tap the ones you remember. |
+| **Tunnel** | A ball rolls into a tunnel at a steady speed. Tap when it reaches the far wall, out of sight. |
+| **Scale** | Tap where a number belongs on an unmarked line. |
+| **Span** | Say how long a line is, measured against a 100-unit bar. |
 
-Glimpse, Bounce and Ballpark are inspired by Lumosity's Eagle Eye, Pinball Recall and Raindrops, but like every Guesstimate game they score how close you get, not just right or wrong.
+Glimpse, Bounce, Ballpark and Grid are inspired by Lumosity's Eagle Eye, Pinball Recall, Raindrops and Memory Matrix, but like every Guesstimate game they score how close you get, not just right or wrong.
+
+The home screen groups the games into four skill areas (Space, Numbers, Memory, Motion; see `SKILLS` in the code) and shows a bar per area from the player's recent rounds, kept in the browser.
 
 Every round scores 0 to 100, so a full day tops out at 500.
 
 ## Today's five
 
-Pour and Flash appear every day. The other three slots rotate among Angle, Center, Timer, Shade, Glimpse, Bounce and Ballpark. Each day's rounds come from a seed based on the date, so everyone gets the same puzzles. After playing you can copy an emoji result to share:
+Pour and Flash appear every day. The other three slots rotate among the other games. A new game joins the rotation from a start date (`LATER` in the code), so adding one never changes a day that has already begun somewhere in the world. A daily run that's left unfinished resumes at the next round. Each day's rounds come from a seed based on the date, so everyone gets the same puzzles. After playing you can copy an emoji result to share:
 
 ```
 Guesstimate No. 1 · 412/500
